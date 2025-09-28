@@ -21,6 +21,10 @@ public class BlockItem {
     @Embedded
     private Prescription prescription;
 
+    // Enhanced prescription for advanced workout types
+    @Embedded
+    private AdvancedPrescription advancedPrescription;
+
     public BlockItem() {}
 
     public BlockItem(ExerciseBlock block, int orderIndex, Exercise exercise, Prescription prescription) {
@@ -68,5 +72,13 @@ public class BlockItem {
 
     public void setPrescription(Prescription prescription) {
         this.prescription = prescription;
+    }
+
+    public AdvancedPrescription getAdvancedPrescription() {
+        return advancedPrescription;
+    }
+
+    public void setAdvancedPrescription(AdvancedPrescription advancedPrescription) {
+        this.advancedPrescription = advancedPrescription;
     }
 }
