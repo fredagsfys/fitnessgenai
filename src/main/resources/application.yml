@@ -1,0 +1,37 @@
+server:
+  port: 8080
+
+spring:
+  application:
+    name: fitness-coach-backend
+
+  datasource:
+    url: jdbc:h2:mem:fitnesscoach
+    driverClassName: org.h2.Driver
+    username: sa
+    password: password
+
+  h2:
+    console:
+      enabled: true
+      path: /h2-console
+
+  jpa:
+    hibernate:
+      ddl-auto: create-drop
+    show-sql: true
+    properties:
+      hibernate:
+        dialect: org.hibernate.dialect.H2Dialect
+        format_sql: true
+
+  security:
+    user:
+      name: admin
+      password: password
+      roles: ADMIN
+
+logging:
+  level:
+    com.fitnesscoach: DEBUG
+    org.springframework.security: DEBUG
