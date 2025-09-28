@@ -1,120 +1,84 @@
-# Fitness Coach Backend API
+# Fitness Coach Monorepo
 
-A comprehensive REST API for fitness workout tracking built with Java 21 and Spring Boot 3.2.0.
+A complete fitness coaching application with a Spring Boot backend API and React Native mobile app.
 
-## Features
+## Project Structure
 
-- User management with registration and authentication
-- Workout planning and tracking
-- Exercise management with detailed sets and reps
-- Comprehensive statistics and analytics
-- RESTful API endpoints
-- H2 in-memory database for development
-- PostgreSQL support for production
-- Global exception handling
-- Input validation
+```
+fitness-coach-monorepo/
+├── backend/          # Spring Boot REST API
+├── mobile/           # React Native mobile app
+├── package.json      # Monorepo workspace configuration
+└── README.md         # This file
+```
 
-## Technology Stack
+## Prerequisites
 
-- **Java 21** - Latest LTS version
-- **Spring Boot 3.2.0** - Latest framework version
-- **Spring Data JPA** - Data persistence
-- **Spring Security** - Authentication and authorization
-- **H2 Database** - Development database
-- **PostgreSQL** - Production database support
-- **Maven** - Build tool
+- Java 21
+- Maven 3.6+
+- Node.js 18+
+- npm 9+
+- React Native CLI
+- Android Studio (for Android development)
+- Xcode (for iOS development, macOS only)
 
 ## Quick Start
 
-1. **Prerequisites**
-   - Java 21 or higher
-   - Maven 3.8+
-
-2. **Run the application**
+1. **Install all dependencies:**
    ```bash
-   mvn spring-boot:run
+   npm run install:all
    ```
 
-3. **Access the API**
-   - Base URL: `http://localhost:8080`
-   - H2 Console: `http://localhost:8080/h2-console`
-     - JDBC URL: `jdbc:h2:mem:fitnesscoach`
-     - Username: `sa`
-     - Password: `password`
+2. **Start the backend API:**
+   ```bash
+   npm run start:backend
+   ```
 
-## API Endpoints
+3. **Start the mobile app:**
+   ```bash
+   npm run start:mobile
+   ```
 
-### Users
-- `POST /api/users/register` - Register a new user
-- `GET /api/users` - Get all users
-- `GET /api/users/{id}` - Get user by ID
-- `PUT /api/users/{id}` - Update user
-- `DELETE /api/users/{id}` - Delete user
+## Backend API
 
-### Workouts
-- `POST /api/workouts` - Create a new workout
-- `GET /api/workouts` - Get all workouts
-- `GET /api/workouts/{id}` - Get workout by ID
-- `GET /api/workouts/user/{userId}` - Get workouts by user
-- `PATCH /api/workouts/{id}/start` - Start a workout
-- `PATCH /api/workouts/{id}/complete` - Complete a workout
-- `PUT /api/workouts/{id}` - Update workout
-- `DELETE /api/workouts/{id}` - Delete workout
+The backend is a Spring Boot application that provides REST APIs for:
+- User management and authentication
+- Exercise library and categories
+- Workout creation and tracking
+- Progress monitoring
 
-### Exercises
-- `POST /api/exercises` - Create a new exercise
+**API Base URL:** `http://localhost:8080/api`
+
+### Key Endpoints
 - `GET /api/exercises` - Get all exercises
-- `GET /api/exercises/{id}` - Get exercise by ID
-- `GET /api/exercises/workout/{workoutId}` - Get exercises by workout
-- `GET /api/exercises/user/{userId}` - Get exercises by user
-- `PUT /api/exercises/{id}` - Update exercise
-- `DELETE /api/exercises/{id}` - Delete exercise
+- `GET /api/exercises/category/{category}` - Get exercises by category
+- `GET /api/workouts` - Get all workouts
+- `POST /api/workouts` - Create new workout
+- `GET /api/users/{id}/progress` - Get user progress
 
-## Authentication
+## Mobile App
 
-The API uses HTTP Basic Authentication. Default credentials:
-- Username: `admin`
-- Password: `password`
+React Native app providing:
+- Exercise browsing and search
+- Workout creation and execution
+- Progress tracking and analytics
+- User profile management
 
-## Data Models
+## Development Scripts
 
-### User
-- Basic profile information
-- Fitness level and goals
-- Physical measurements
-- Workout history
+- `npm run dev` - Start both backend and mobile in development mode
+- `npm run test:backend` - Run backend tests
+- `npm run test:mobile` - Run mobile tests
+- `npm run build:backend` - Build backend JAR
+- `npm run build:mobile` - Build mobile app
 
-### Workout
-- Name and description
-- Scheduled date and time
-- Duration and calories burned
-- Status tracking (planned, in-progress, completed)
-- Associated exercises
+## Database
 
-### Exercise
-- Name and instructions
-- Category and muscle groups
-- Sets, reps, weight, and duration tracking
-- Rest time recommendations
+The backend uses H2 in-memory database by default. Access the H2 console at:
+`http://localhost:8080/h2-console`
 
-## Development
+## Contributing
 
-The application uses an H2 in-memory database by default, which is perfect for development and testing. Data is automatically reset when the application restarts.
-
-For production, update the `application.yml` file to use PostgreSQL or your preferred database.
-
-## Building
-
-```bash
-# Clean and compile
-mvn clean compile
-
-# Run tests
-mvn test
-
-# Package the application
-mvn package
-
-# Run the packaged application
-java -jar target/fitness-coach-backend-1.0.0.jar
-```
+1. Make changes in the appropriate workspace (`backend/` or `mobile/`)
+2. Run tests before committing
+3. Follow the existing code style and conventions

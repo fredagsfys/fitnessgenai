@@ -1,0 +1,30 @@
+{
+  "name": "fitness-coach-monorepo",
+  "version": "1.0.0",
+  "description": "Monorepo for Fitness Coach app - backend API and React Native mobile app",
+  "private": true,
+  "workspaces": [
+    "backend",
+    "mobile"
+  ],
+  "scripts": {
+    "install:all": "npm install && cd backend && mvn clean install && cd ../mobile && npm install",
+    "start:backend": "cd backend && mvn spring-boot:run",
+    "start:mobile": "cd mobile && npm start",
+    "start:mobile:ios": "cd mobile && npm run ios",
+    "start:mobile:android": "cd mobile && npm run android",
+    "test:backend": "cd backend && mvn test",
+    "test:mobile": "cd mobile && npm test",
+    "build:backend": "cd backend && mvn clean package",
+    "build:mobile": "cd mobile && npm run build",
+    "dev": "concurrently \"npm run start:backend\" \"npm run start:mobile\"",
+    "lint:mobile": "cd mobile && npm run lint"
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.2"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "npm": ">=9.0.0"
+  }
+}

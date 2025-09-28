@@ -2,7 +2,16 @@
   "permissions": {
     "allow": [
       "Bash(mvn clean:*)",
-      "Bash(find:*)"
+      "Bash(find:*)",
+      "Bash(mv:*)",
+      "Bash(npx react-native:*)",
+      "Bash(npx @react-native-community/cli:*)",
+      "Bash(npm install)",
+      "Bash(npm install:*)",
+      "Bash(npm run android:*)",
+      "Bash(npx tsc:*)",
+      "Bash(npm uninstall:*)",
+      "Bash(npm run lint)"
     ],
     "deny": [],
     "ask": []
