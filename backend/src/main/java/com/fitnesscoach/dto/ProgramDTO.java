@@ -6,6 +6,8 @@ import java.util.UUID;
 public class ProgramDTO {
     public UUID id;
     public String title;
+    public String startDate;
+    public String endDate;
     public int totalWeeks;
     public List<SessionDTO> sessions;
 

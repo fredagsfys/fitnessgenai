@@ -2,6 +2,7 @@ import React from 'react';
 import {NavigationContainer} from '@react-navigation/native';
 import {createBottomTabNavigator} from '@react-navigation/bottom-tabs';
 import {createStackNavigator} from '@react-navigation/stack';
+import {useSafeAreaInsets} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 
 import ExercisesScreen from '../screens/ExercisesScreen';
@@ -10,11 +11,15 @@ import ProfileScreen from '../screens/ProfileScreen';
 import ProgressScreen from '../screens/ProgressScreen';
 import WorkoutDetailScreen from '../screens/WorkoutDetailScreen';
 import ExerciseDetailScreen from '../screens/ExerciseDetailScreen';
+import WorkoutBuilderScreen from '../screens/WorkoutBuilderScreen';
+import ProgramDetailScreen from '../screens/ProgramDetailScreen';
 
 export type RootStackParamList = {
   MainTabs: undefined;
   ExerciseDetail: {exerciseId: number};
   WorkoutDetail: {workoutId: number};
+  WorkoutBuilder: undefined;
+  ProgramDetail: {programId: string};
 };
 
 export type TabParamList = {
@@ -43,6 +48,8 @@ const getTabBarIcon = (routeName: string) => {
 };
 
 const TabNavigator = () => {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tab.Navigator
       screenOptions={({route}) => ({
@@ -55,9 +62,9 @@ const TabNavigator = () => {
           backgroundColor: 'white',
           borderTopWidth: 1,
           borderTopColor: '#e0e0e0',
-          paddingBottom: 5,
+          paddingBottom: insets.bottom + 5,
           paddingTop: 5,
-          height: 60,
+          height: 60 + insets.bottom,
         },
         headerShown: false,
       })}>
@@ -97,6 +104,7 @@ const AppNavigator = () => {
           headerTitleStyle: {
             fontWeight: 'bold',
           },
+          headerStatusBarHeight: 0,
         }}>
         <Stack.Screen
           name="MainTabs"
@@ -112,6 +120,16 @@ const AppNavigator = () => {
           name="WorkoutDetail"
           component={WorkoutDetailScreen}
           options={{title: 'Workout Details'}}
+        />
+        <Stack.Screen
+          name="WorkoutBuilder"
+          component={WorkoutBuilderScreen}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen
+          name="ProgramDetail"
+          component={ProgramDetailScreen}
+          options={{headerShown: false}}
         />
       </Stack.Navigator>
     </NavigationContainer>

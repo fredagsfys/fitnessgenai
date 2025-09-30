@@ -21,6 +21,7 @@ com\fitnesscoach\model\legacy\WorkoutResult.class
 com\fitnesscoach\model\WeightUnit.class
 com\fitnesscoach\exception\ErrorResponse.class
 com\fitnesscoach\model\SetResult.class
+com\fitnesscoach\config\DataSeeder.class
 com\fitnesscoach\repository\AdvancedWorkoutResultRepository.class
 com\fitnesscoach\repository\ProgramRepository.class
 com\fitnesscoach\controller\UserProgressController.class
@@ -40,6 +41,7 @@ com\fitnesscoach\repository\legacy\UserRepository.class
 com\fitnesscoach\dto\SessionDTO.class
 com\fitnesscoach\model\WorkoutSession.class
 com\fitnesscoach\service\AdvancedAnalyticsService$TabataAnalytics.class
+com\fitnesscoach\controller\ProgramController.class
 com\fitnesscoach\service\ProgramService.class
 com\fitnesscoach\model\legacy\User.class
 com\fitnesscoach\model\AdvancedWorkoutResult$SessionCompletionStatus.class

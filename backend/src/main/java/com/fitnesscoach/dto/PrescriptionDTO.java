@@ -3,11 +3,19 @@ package com.fitnesscoach.dto;
 public class PrescriptionDTO {
     public int weekStart;
     public int weekEnd;
-    public int sets;
-    public int targetReps;
+    public Integer sets;
+    public Integer minReps;
+    public Integer maxReps;
+    public Integer targetReps;
+    public Double weight;
+    public String weightUnit;
     public String tempo;
-    public int restSeconds;
+    public Integer restSeconds;
+    public Integer rpe;
+    public Integer rir;
+    public Double percentage1RM;
     public String coachNotes;
+    public String notes;
 
     public PrescriptionDTO() {}
 
@@ -20,5 +28,6 @@ public class PrescriptionDTO {
         this.tempo = tempo;
         this.restSeconds = restSeconds;
         this.coachNotes = coachNotes;
+        this.notes = coachNotes;
     }
 }

@@ -19,7 +19,11 @@
       "Bash(cat:*)",
       "Bash(./gradlew.bat:*)",
       "Bash(watchman:*)",
-      "Bash(adb logcat:*)"
+      "Bash(adb logcat:*)",
+      "WebSearch",
+      "WebFetch(domain:stormotion.io)",
+      "WebFetch(domain:www.fusioncharts.com)",
+      "Bash(./mvnw clean compile)"
     ],
     "deny": [],
     "ask": []

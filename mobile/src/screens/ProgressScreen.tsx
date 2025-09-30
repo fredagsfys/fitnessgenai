@@ -11,6 +11,7 @@ import {
   Modal,
   TextInput,
 } from 'react-native';
+import {SafeAreaView} from 'react-native-safe-area-context';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {progressService, userService, workoutService, UserProgress, User, Workout} from '../services/api';
 
@@ -180,7 +181,7 @@ const ProgressScreen = () => {
   }
 
   return (
-    <View style={styles.container}>
+    <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <Text style={styles.title}>Progress</Text>
         <TouchableOpacity style={styles.addButton} onPress={openCreateModal}>
@@ -310,7 +311,7 @@ const ProgressScreen = () => {
           </View>
         </View>
       </Modal>
-    </View>
+    </SafeAreaView>
   );
 };
 
@@ -318,7 +319,7 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f5f5f5',
-    padding: 16,
+    paddingHorizontal: 16,
   },
   centerContainer: {
     flex: 1,
