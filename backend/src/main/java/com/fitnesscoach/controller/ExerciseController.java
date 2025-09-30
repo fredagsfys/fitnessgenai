@@ -24,45 +24,38 @@ public class ExerciseController {
 
     @GetMapping
     public ResponseEntity<List<Exercise>> getAllExercises() {
-        List<Exercise> exercises = exerciseService.getAllExercises();
+        List<Exercise> exercises = exerciseService.findAll();
         return ResponseEntity.ok(exercises);
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<Exercise> getExerciseById(@PathVariable Long id) {
-        Optional<Exercise> exercise = exerciseService.getExerciseById(id);
-        return exercise.map(ResponseEntity::ok)
-                      .orElse(ResponseEntity.notFound().build());
+    public ResponseEntity<Exercise> getExerciseById(@PathVariable String id) {
+        try {
+            java.util.UUID uuid = java.util.UUID.fromString(id);
+            Optional<Exercise> exercise = exerciseService.findById(uuid);
+            return exercise.map(ResponseEntity::ok)
+                          .orElse(ResponseEntity.notFound().build());
+        } catch (IllegalArgumentException e) {
+            return ResponseEntity.badRequest().build();
+        }
     }
 
-    @GetMapping("/workout/{workoutId}")
-    public ResponseEntity<List<Exercise>> getExercisesByWorkoutId(@PathVariable Long workoutId) {
-        List<Exercise> exercises = exerciseService.getExercisesByWorkoutId(workoutId);
+    @GetMapping("/search")
+    public ResponseEntity<List<Exercise>> searchExercises(@RequestParam String name) {
+        List<Exercise> exercises = exerciseService.searchByName(name);
         return ResponseEntity.ok(exercises);
     }
 
-    @GetMapping("/user/{userId}")
-    public ResponseEntity<List<Exercise>> getExercisesByUserId(@PathVariable Long userId) {
-        List<Exercise> exercises = exerciseService.getExercisesByUserId(userId);
+    @GetMapping("/muscle/{primaryMuscle}")
+    public ResponseEntity<List<Exercise>> getExercisesByMuscle(@PathVariable String primaryMuscle) {
+        List<Exercise> exercises = exerciseService.findByPrimaryMuscle(primaryMuscle);
         return ResponseEntity.ok(exercises);
     }
 
-    @GetMapping("/category/{category}")
-    public ResponseEntity<List<Exercise>> getExercisesByCategory(@PathVariable Exercise.ExerciseCategory category) {
-        List<Exercise> exercises = exerciseService.getExercisesByCategory(category);
+    @GetMapping("/equipment/{equipment}")
+    public ResponseEntity<List<Exercise>> getExercisesByEquipment(@PathVariable String equipment) {
+        List<Exercise> exercises = exerciseService.findByEquipment(equipment);
         return ResponseEntity.ok(exercises);
-    }
-
-    @GetMapping("/muscle-group/{muscleGroup}")
-    public ResponseEntity<List<Exercise>> getExercisesByMuscleGroup(@PathVariable String muscleGroup) {
-        List<Exercise> exercises = exerciseService.getExercisesByMuscleGroup(muscleGroup);
-        return ResponseEntity.ok(exercises);
-    }
-
-    @GetMapping("/muscle-groups")
-    public ResponseEntity<List<String>> getDistinctMuscleGroups() {
-        List<String> muscleGroups = exerciseService.getDistinctMuscleGroups();
-        return ResponseEntity.ok(muscleGroups);
     }
 
     @PostMapping
@@ -76,9 +69,10 @@ public class ExerciseController {
     }
 
     @PutMapping("/{id}")
-    public ResponseEntity<Exercise> updateExercise(@PathVariable Long id, @Valid @RequestBody Exercise exerciseDetails) {
+    public ResponseEntity<Exercise> updateExercise(@PathVariable String id, @Valid @RequestBody Exercise exerciseDetails) {
         try {
-            Exercise updatedExercise = exerciseService.updateExercise(id, exerciseDetails);
+            java.util.UUID uuid = java.util.UUID.fromString(id);
+            Exercise updatedExercise = exerciseService.updateExercise(uuid, exerciseDetails);
             return ResponseEntity.ok(updatedExercise);
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();
@@ -86,9 +80,10 @@ public class ExerciseController {
     }
 
     @DeleteMapping("/{id}")
-    public ResponseEntity<Void> deleteExercise(@PathVariable Long id) {
+    public ResponseEntity<Void> deleteExercise(@PathVariable String id) {
         try {
-            exerciseService.deleteExercise(id);
+            java.util.UUID uuid = java.util.UUID.fromString(id);
+            exerciseService.deleteExercise(uuid);
             return ResponseEntity.noContent().build();
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();

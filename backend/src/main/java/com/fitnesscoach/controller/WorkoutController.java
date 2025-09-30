@@ -1,9 +1,9 @@
 package com.fitnesscoach.controller;
 
-import com.fitnesscoach.model.Workout;
-import com.fitnesscoach.model.WorkoutResult;
-import com.fitnesscoach.service.WorkoutService;
-import com.fitnesscoach.service.WorkoutResultService;
+import com.fitnesscoach.model.legacy.Workout;
+import com.fitnesscoach.model.legacy.WorkoutResult;
+import com.fitnesscoach.service.legacy.WorkoutService;
+import com.fitnesscoach.service.legacy.WorkoutResultService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.format.annotation.DateTimeFormat;

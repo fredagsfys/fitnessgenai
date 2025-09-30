@@ -16,11 +16,15 @@ import {StackNavigationProp} from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {workoutService, Workout} from '../services/api';
 import {RootStackParamList} from '../navigation/AppNavigator';
+import {useUser} from '../context/UserContext';
 
 type NavigationProp = StackNavigationProp<RootStackParamList>;
 
+const difficulties = ['Beginner', 'Intermediate', 'Advanced'];
+
 const WorkoutsScreen = () => {
   const navigation = useNavigation<NavigationProp>();
+  const {userId} = useUser();
   const [workouts, setWorkouts] = useState<Workout[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
@@ -29,11 +33,9 @@ const WorkoutsScreen = () => {
   const [workoutForm, setWorkoutForm] = useState({
     name: '',
     description: '',
-    duration: '',
+    estimatedDurationMinutes: '',
     difficulty: 'Beginner',
   });
-
-  const difficulties = ['Beginner', 'Intermediate', 'Advanced'];
 
   const loadWorkouts = async () => {
     try {
@@ -59,7 +61,7 @@ const WorkoutsScreen = () => {
     setWorkoutForm({
       name: '',
       description: '',
-      duration: '',
+      estimatedDurationMinutes: '',
       difficulty: 'Beginner',
     });
     setModalVisible(true);
@@ -69,31 +71,33 @@ const WorkoutsScreen = () => {
     setEditingWorkout(workout);
     setWorkoutForm({
       name: workout.name,
-      description: workout.description,
-      duration: workout.duration.toString(),
-      difficulty: workout.difficulty,
+      description: workout.description || '',
+      estimatedDurationMinutes: workout.estimatedDurationMinutes?.toString() || '',
+      difficulty: 'Beginner',
     });
     setModalVisible(true);
   };
 
   const handleSaveWorkout = async () => {
+    if (!userId) {
+      Alert.alert('Error', 'User not logged in');
+      return;
+    }
+
     if (!workoutForm.name.trim()) {
       Alert.alert('Error', 'Please enter a workout name');
       return;
     }
 
-    if (!workoutForm.duration.trim() || isNaN(Number(workoutForm.duration))) {
-      Alert.alert('Error', 'Please enter a valid duration in minutes');
-      return;
-    }
-
     try {
-      const workoutData = {
+      const workoutData: Partial<Workout> = {
+        userId: userId,
         name: workoutForm.name.trim(),
-        description: workoutForm.description.trim(),
-        duration: Number(workoutForm.duration),
-        difficulty: workoutForm.difficulty,
-        exercises: editingWorkout?.exercises || [],
+        description: workoutForm.description.trim() || undefined,
+        estimatedDurationMinutes: workoutForm.estimatedDurationMinutes
+          ? Number(workoutForm.estimatedDurationMinutes)
+          : undefined,
+        status: 'PLANNED' as const,
       };
 
       if (editingWorkout) {
@@ -148,7 +152,7 @@ const WorkoutsScreen = () => {
       <View style={styles.workoutHeader}>
         <View style={styles.workoutInfo}>
           <Text style={styles.workoutName}>{item.name}</Text>
-          <Text style={styles.workoutDifficulty}>{item.difficulty}</Text>
+          <Text style={styles.workoutStatus}>Status: {item.status}</Text>
         </View>
         <View style={styles.workoutActions}>
           <TouchableOpacity
@@ -166,7 +170,9 @@ const WorkoutsScreen = () => {
         </View>
       </View>
 
-      <Text style={styles.workoutDuration}>{item.duration} minutes</Text>
+      <Text style={styles.workoutDuration}>
+        {item.estimatedDurationMinutes ? `${item.estimatedDurationMinutes} minutes` : 'Duration not set'}
+      </Text>
 
       {item.description && (
         <Text style={styles.workoutDescription} numberOfLines={2}>
@@ -256,8 +262,8 @@ const WorkoutsScreen = () => {
             <TextInput
               style={styles.input}
               placeholder="Duration (minutes)"
-              value={workoutForm.duration}
-              onChangeText={text => setWorkoutForm({...workoutForm, duration: text})}
+              value={workoutForm.estimatedDurationMinutes}
+              onChangeText={text => setWorkoutForm({...workoutForm, estimatedDurationMinutes: text})}
               keyboardType="numeric"
             />
 
@@ -372,7 +378,7 @@ const styles = StyleSheet.create({
     color: '#333',
     marginBottom: 4,
   },
-  workoutDifficulty: {
+  workoutStatus: {
     fontSize: 14,
     color: '#007AFF',
     fontWeight: '600',

@@ -21,10 +21,15 @@
     "lint:mobile": "cd mobile && npm run lint"
   },
   "devDependencies": {
-    "concurrently": "^8.2.2"
+    "@react-native/gradle-plugin": "^0.81.4",
+    "concurrently": "^8.2.2",
+    "react-native": "^0.81.4"
   },
   "engines": {
     "node": ">=18.0.0",
     "npm": ">=9.0.0"
+  },
+  "overrides": {
+    "react": "19.1.0"
   }
 }

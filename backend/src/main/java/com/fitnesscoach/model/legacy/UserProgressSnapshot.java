@@ -2,10 +2,8 @@ package com.fitnesscoach.model.legacy;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PositiveOrZero;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 
 @Entity
@@ -16,116 +14,77 @@ public class UserProgressSnapshot {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
+    @NotNull
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
 
-    @NotNull(message = "Snapshot date is required")
+    @NotNull
     @Column(name = "snapshot_date", nullable = false)
-    private LocalDateTime snapshotDate;
+    private LocalDate snapshotDate;
 
-    @PositiveOrZero(message = "Weight must be positive or zero")
-    private Double weight;
+    @Column(name = "weight_kg")
+    private Double weightKg;
 
-    @PositiveOrZero(message = "Body fat percentage must be positive or zero")
     @Column(name = "body_fat_percentage")
     private Double bodyFatPercentage;
 
-    @PositiveOrZero(message = "Muscle mass must be positive or zero")
-    @Column(name = "muscle_mass")
-    private Double muscleMass;
+    @Column(name = "muscle_mass_kg")
+    private Double muscleMassKg;
 
-    @PositiveOrZero(message = "Chest measurement must be positive or zero")
-    @Column(name = "chest_measurement")
-    private Double chestMeasurement;
+    @Column(name = "chest_cm")
+    private Double chestCm;
 
-    @PositiveOrZero(message = "Waist measurement must be positive or zero")
-    @Column(name = "waist_measurement")
-    private Double waistMeasurement;
+    @Column(name = "waist_cm")
+    private Double waistCm;
 
-    @PositiveOrZero(message = "Hip measurement must be positive or zero")
-    @Column(name = "hip_measurement")
-    private Double hipMeasurement;
+    @Column(name = "hips_cm")
+    private Double hipsCm;
 
-    @PositiveOrZero(message = "Arm measurement must be positive or zero")
-    @Column(name = "arm_measurement")
-    private Double armMeasurement;
+    @Column(name = "bicep_left_cm")
+    private Double bicepLeftCm;
 
-    @PositiveOrZero(message = "Thigh measurement must be positive or zero")
-    @Column(name = "thigh_measurement")
-    private Double thighMeasurement;
+    @Column(name = "bicep_right_cm")
+    private Double bicepRightCm;
 
-    @PositiveOrZero(message = "Resting heart rate must be positive or zero")
-    @Column(name = "resting_heart_rate")
-    private Integer restingHeartRate;
+    @Column(name = "thigh_left_cm")
+    private Double thighLeftCm;
 
-    @Column(name = "blood_pressure_systolic")
-    private Integer bloodPressureSystolic;
+    @Column(name = "thigh_right_cm")
+    private Double thighRightCm;
 
-    @Column(name = "blood_pressure_diastolic")
-    private Integer bloodPressureDiastolic;
+    @Column(name = "calf_left_cm")
+    private Double calfLeftCm;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "fitness_level")
-    private User.FitnessLevel fitnessLevel;
+    @Column(name = "calf_right_cm")
+    private Double calfRightCm;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "energy_level")
-    private EnergyLevel energyLevel;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "sleep_quality")
-    private SleepQuality sleepQuality;
-
-    @PositiveOrZero(message = "Average sleep hours must be positive or zero")
-    @Column(name = "average_sleep_hours")
-    private Double averageSleepHours;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "stress_level")
-    private StressLevel stressLevel;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "overall_wellness")
-    private WellnessRating overallWellness;
-
-    @Column(name = "weekly_workout_frequency")
-    private Integer weeklyWorkoutFrequency;
-
-    @Column(name = "total_workouts_completed")
-    private Integer totalWorkoutsCompleted;
-
-    @Column(name = "average_workout_duration")
-    private Double averageWorkoutDuration;
-
-    @Column(name = "total_calories_burned")
-    private Integer totalCaloriesBurned;
-
-    @Column(name = "strength_improvement_percentage")
-    private Double strengthImprovementPercentage;
-
-    @Column(name = "endurance_improvement_percentage")
-    private Double enduranceImprovementPercentage;
-
-    private String goals;
+    @Column(columnDefinition = "TEXT")
     private String notes;
 
-    @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "photo_url")
+    private String photoUrl;
+
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    public UserProgressSnapshot() {}
-
-    public UserProgressSnapshot(User user, LocalDateTime snapshotDate) {
-        this.user = user;
-        this.snapshotDate = snapshotDate;
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+        if (snapshotDate == null) {
+            snapshotDate = LocalDate.now();
+        }
     }
 
-    // Getters and Setters
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+
+    // Getters and setters
     public Long getId() {
         return id;
     }
@@ -134,28 +93,28 @@ public class UserProgressSnapshot {
         this.id = id;
     }
 
-    public User getUser() {
-        return user;
+    public Long getUserId() {
+        return userId;
     }
 
-    public void setUser(User user) {
-        this.user = user;
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 
-    public LocalDateTime getSnapshotDate() {
+    public LocalDate getSnapshotDate() {
         return snapshotDate;
     }
 
-    public void setSnapshotDate(LocalDateTime snapshotDate) {
+    public void setSnapshotDate(LocalDate snapshotDate) {
         this.snapshotDate = snapshotDate;
     }
 
-    public Double getWeight() {
-        return weight;
+    public Double getWeightKg() {
+        return weightKg;
     }
 
-    public void setWeight(Double weight) {
-        this.weight = weight;
+    public void setWeightKg(Double weightKg) {
+        this.weightKg = weightKg;
     }
 
     public Double getBodyFatPercentage() {
@@ -166,180 +125,84 @@ public class UserProgressSnapshot {
         this.bodyFatPercentage = bodyFatPercentage;
     }
 
-    public Double getMuscleMass() {
-        return muscleMass;
+    public Double getMuscleMassKg() {
+        return muscleMassKg;
     }
 
-    public void setMuscleMass(Double muscleMass) {
-        this.muscleMass = muscleMass;
+    public void setMuscleMassKg(Double muscleMassKg) {
+        this.muscleMassKg = muscleMassKg;
     }
 
-    public Double getChestMeasurement() {
-        return chestMeasurement;
+    public Double getChestCm() {
+        return chestCm;
     }
 
-    public void setChestMeasurement(Double chestMeasurement) {
-        this.chestMeasurement = chestMeasurement;
+    public void setChestCm(Double chestCm) {
+        this.chestCm = chestCm;
     }
 
-    public Double getWaistMeasurement() {
-        return waistMeasurement;
+    public Double getWaistCm() {
+        return waistCm;
     }
 
-    public void setWaistMeasurement(Double waistMeasurement) {
-        this.waistMeasurement = waistMeasurement;
+    public void setWaistCm(Double waistCm) {
+        this.waistCm = waistCm;
     }
 
-    public Double getHipMeasurement() {
-        return hipMeasurement;
+    public Double getHipsCm() {
+        return hipsCm;
     }
 
-    public void setHipMeasurement(Double hipMeasurement) {
-        this.hipMeasurement = hipMeasurement;
+    public void setHipsCm(Double hipsCm) {
+        this.hipsCm = hipsCm;
     }
 
-    public Double getArmMeasurement() {
-        return armMeasurement;
+    public Double getBicepLeftCm() {
+        return bicepLeftCm;
     }
 
-    public void setArmMeasurement(Double armMeasurement) {
-        this.armMeasurement = armMeasurement;
+    public void setBicepLeftCm(Double bicepLeftCm) {
+        this.bicepLeftCm = bicepLeftCm;
     }
 
-    public Double getThighMeasurement() {
-        return thighMeasurement;
+    public Double getBicepRightCm() {
+        return bicepRightCm;
     }
 
-    public void setThighMeasurement(Double thighMeasurement) {
-        this.thighMeasurement = thighMeasurement;
+    public void setBicepRightCm(Double bicepRightCm) {
+        this.bicepRightCm = bicepRightCm;
     }
 
-    public Integer getRestingHeartRate() {
-        return restingHeartRate;
+    public Double getThighLeftCm() {
+        return thighLeftCm;
     }
 
-    public void setRestingHeartRate(Integer restingHeartRate) {
-        this.restingHeartRate = restingHeartRate;
+    public void setThighLeftCm(Double thighLeftCm) {
+        this.thighLeftCm = thighLeftCm;
     }
 
-    public Integer getBloodPressureSystolic() {
-        return bloodPressureSystolic;
+    public Double getThighRightCm() {
+        return thighRightCm;
     }
 
-    public void setBloodPressureSystolic(Integer bloodPressureSystolic) {
-        this.bloodPressureSystolic = bloodPressureSystolic;
+    public void setThighRightCm(Double thighRightCm) {
+        this.thighRightCm = thighRightCm;
     }
 
-    public Integer getBloodPressureDiastolic() {
-        return bloodPressureDiastolic;
+    public Double getCalfLeftCm() {
+        return calfLeftCm;
     }
 
-    public void setBloodPressureDiastolic(Integer bloodPressureDiastolic) {
-        this.bloodPressureDiastolic = bloodPressureDiastolic;
+    public void setCalfLeftCm(Double calfLeftCm) {
+        this.calfLeftCm = calfLeftCm;
     }
 
-    public User.FitnessLevel getFitnessLevel() {
-        return fitnessLevel;
+    public Double getCalfRightCm() {
+        return calfRightCm;
     }
 
-    public void setFitnessLevel(User.FitnessLevel fitnessLevel) {
-        this.fitnessLevel = fitnessLevel;
-    }
-
-    public EnergyLevel getEnergyLevel() {
-        return energyLevel;
-    }
-
-    public void setEnergyLevel(EnergyLevel energyLevel) {
-        this.energyLevel = energyLevel;
-    }
-
-    public SleepQuality getSleepQuality() {
-        return sleepQuality;
-    }
-
-    public void setSleepQuality(SleepQuality sleepQuality) {
-        this.sleepQuality = sleepQuality;
-    }
-
-    public Double getAverageSleepHours() {
-        return averageSleepHours;
-    }
-
-    public void setAverageSleepHours(Double averageSleepHours) {
-        this.averageSleepHours = averageSleepHours;
-    }
-
-    public StressLevel getStressLevel() {
-        return stressLevel;
-    }
-
-    public void setStressLevel(StressLevel stressLevel) {
-        this.stressLevel = stressLevel;
-    }
-
-    public WellnessRating getOverallWellness() {
-        return overallWellness;
-    }
-
-    public void setOverallWellness(WellnessRating overallWellness) {
-        this.overallWellness = overallWellness;
-    }
-
-    public Integer getWeeklyWorkoutFrequency() {
-        return weeklyWorkoutFrequency;
-    }
-
-    public void setWeeklyWorkoutFrequency(Integer weeklyWorkoutFrequency) {
-        this.weeklyWorkoutFrequency = weeklyWorkoutFrequency;
-    }
-
-    public Integer getTotalWorkoutsCompleted() {
-        return totalWorkoutsCompleted;
-    }
-
-    public void setTotalWorkoutsCompleted(Integer totalWorkoutsCompleted) {
-        this.totalWorkoutsCompleted = totalWorkoutsCompleted;
-    }
-
-    public Double getAverageWorkoutDuration() {
-        return averageWorkoutDuration;
-    }
-
-    public void setAverageWorkoutDuration(Double averageWorkoutDuration) {
-        this.averageWorkoutDuration = averageWorkoutDuration;
-    }
-
-    public Integer getTotalCaloriesBurned() {
-        return totalCaloriesBurned;
-    }
-
-    public void setTotalCaloriesBurned(Integer totalCaloriesBurned) {
-        this.totalCaloriesBurned = totalCaloriesBurned;
-    }
-
-    public Double getStrengthImprovementPercentage() {
-        return strengthImprovementPercentage;
-    }
-
-    public void setStrengthImprovementPercentage(Double strengthImprovementPercentage) {
-        this.strengthImprovementPercentage = strengthImprovementPercentage;
-    }
-
-    public Double getEnduranceImprovementPercentage() {
-        return enduranceImprovementPercentage;
-    }
-
-    public void setEnduranceImprovementPercentage(Double enduranceImprovementPercentage) {
-        this.enduranceImprovementPercentage = enduranceImprovementPercentage;
-    }
-
-    public String getGoals() {
-        return goals;
-    }
-
-    public void setGoals(String goals) {
-        this.goals = goals;
+    public void setCalfRightCm(Double calfRightCm) {
+        this.calfRightCm = calfRightCm;
     }
 
     public String getNotes() {
@@ -348,6 +211,14 @@ public class UserProgressSnapshot {
 
     public void setNotes(String notes) {
         this.notes = notes;
+    }
+
+    public String getPhotoUrl() {
+        return photoUrl;
+    }
+
+    public void setPhotoUrl(String photoUrl) {
+        this.photoUrl = photoUrl;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -364,21 +235,5 @@ public class UserProgressSnapshot {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
-    }
-
-    public enum EnergyLevel {
-        VERY_LOW, LOW, MODERATE, HIGH, VERY_HIGH
-    }
-
-    public enum SleepQuality {
-        VERY_POOR, POOR, FAIR, GOOD, EXCELLENT
-    }
-
-    public enum StressLevel {
-        VERY_LOW, LOW, MODERATE, HIGH, VERY_HIGH
-    }
-
-    public enum WellnessRating {
-        VERY_POOR, POOR, FAIR, GOOD, EXCELLENT
     }
 }

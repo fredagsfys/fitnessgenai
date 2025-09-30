@@ -2,11 +2,10 @@ package com.fitnesscoach.model.legacy;
 
 import jakarta.persistence.*;
 import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.PositiveOrZero;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "workout_results")
@@ -16,71 +15,65 @@ public class WorkoutResult {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @OneToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "workout_id", nullable = false, unique = true)
-    private Workout workout;
+    @NotNull
+    @Column(name = "workout_id", nullable = false)
+    private Long workoutId;
 
-    @NotNull(message = "Completion date is required")
-    @Column(name = "completed_at", nullable = false)
-    private LocalDateTime completedAt;
+    @NotNull
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
 
-    @PositiveOrZero(message = "Actual duration must be positive or zero")
-    @Column(name = "actual_duration_minutes")
-    private Integer actualDurationMinutes;
+    @Column(name = "duration_minutes")
+    private Integer durationMinutes;
 
-    @PositiveOrZero(message = "Calories burned must be positive or zero")
-    @Column(name = "actual_calories_burned")
-    private Integer actualCaloriesBurned;
+    @Column(name = "calories_burned")
+    private Integer caloriesBurned;
 
-    @PositiveOrZero(message = "Average heart rate must be positive or zero")
     @Column(name = "average_heart_rate")
     private Integer averageHeartRate;
 
-    @PositiveOrZero(message = "Max heart rate must be positive or zero")
     @Column(name = "max_heart_rate")
     private Integer maxHeartRate;
 
-    @Column(name = "perceived_exertion")
-    private Integer perceivedExertion; // RPE scale 1-10
+    @Column(name = "rpe_rating")
+    private Integer rpeRating;
 
-    @Enumerated(EnumType.STRING)
-    @Column(name = "difficulty_rating")
-    private DifficultyRating difficultyRating;
-
-    @Enumerated(EnumType.STRING)
-    @Column(name = "mood_after")
-    private MoodRating moodAfter;
-
-    @Column(name = "total_volume")
-    private Double totalVolume; // Weight x Reps for strength workouts
-
-    @Column(name = "personal_records")
-    private Integer personalRecords; // Number of PRs achieved
-
+    @Column(columnDefinition = "TEXT")
     private String notes;
 
-    @Column(name = "weather_conditions")
-    private String weatherConditions;
+    @Column(name = "is_personal_record")
+    private Boolean isPersonalRecord = false;
 
-    @Column(name = "workout_location")
-    private String workoutLocation;
+    @ElementCollection
+    @CollectionTable(name = "workout_result_metrics", joinColumns = @JoinColumn(name = "workout_result_id"))
+    @MapKeyColumn(name = "metric_name")
+    @Column(name = "metric_value")
+    private java.util.Map<String, String> metrics = new java.util.HashMap<>();
 
-    @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "completed_at", nullable = false)
+    private LocalDateTime completedAt;
+
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    public WorkoutResult() {}
-
-    public WorkoutResult(Workout workout, LocalDateTime completedAt) {
-        this.workout = workout;
-        this.completedAt = completedAt;
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+        if (completedAt == null) {
+            completedAt = LocalDateTime.now();
+        }
     }
 
-    // Getters and Setters
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+
+    // Getters and setters
     public Long getId() {
         return id;
     }
@@ -89,36 +82,36 @@ public class WorkoutResult {
         this.id = id;
     }
 
-    public Workout getWorkout() {
-        return workout;
+    public Long getWorkoutId() {
+        return workoutId;
     }
 
-    public void setWorkout(Workout workout) {
-        this.workout = workout;
+    public void setWorkoutId(Long workoutId) {
+        this.workoutId = workoutId;
     }
 
-    public LocalDateTime getCompletedAt() {
-        return completedAt;
+    public Long getUserId() {
+        return userId;
     }
 
-    public void setCompletedAt(LocalDateTime completedAt) {
-        this.completedAt = completedAt;
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 
-    public Integer getActualDurationMinutes() {
-        return actualDurationMinutes;
+    public Integer getDurationMinutes() {
+        return durationMinutes;
     }
 
-    public void setActualDurationMinutes(Integer actualDurationMinutes) {
-        this.actualDurationMinutes = actualDurationMinutes;
+    public void setDurationMinutes(Integer durationMinutes) {
+        this.durationMinutes = durationMinutes;
     }
 
-    public Integer getActualCaloriesBurned() {
-        return actualCaloriesBurned;
+    public Integer getCaloriesBurned() {
+        return caloriesBurned;
     }
 
-    public void setActualCaloriesBurned(Integer actualCaloriesBurned) {
-        this.actualCaloriesBurned = actualCaloriesBurned;
+    public void setCaloriesBurned(Integer caloriesBurned) {
+        this.caloriesBurned = caloriesBurned;
     }
 
     public Integer getAverageHeartRate() {
@@ -137,44 +130,12 @@ public class WorkoutResult {
         this.maxHeartRate = maxHeartRate;
     }
 
-    public Integer getPerceivedExertion() {
-        return perceivedExertion;
+    public Integer getRpeRating() {
+        return rpeRating;
     }
 
-    public void setPerceivedExertion(Integer perceivedExertion) {
-        this.perceivedExertion = perceivedExertion;
-    }
-
-    public DifficultyRating getDifficultyRating() {
-        return difficultyRating;
-    }
-
-    public void setDifficultyRating(DifficultyRating difficultyRating) {
-        this.difficultyRating = difficultyRating;
-    }
-
-    public MoodRating getMoodAfter() {
-        return moodAfter;
-    }
-
-    public void setMoodAfter(MoodRating moodAfter) {
-        this.moodAfter = moodAfter;
-    }
-
-    public Double getTotalVolume() {
-        return totalVolume;
-    }
-
-    public void setTotalVolume(Double totalVolume) {
-        this.totalVolume = totalVolume;
-    }
-
-    public Integer getPersonalRecords() {
-        return personalRecords;
-    }
-
-    public void setPersonalRecords(Integer personalRecords) {
-        this.personalRecords = personalRecords;
+    public void setRpeRating(Integer rpeRating) {
+        this.rpeRating = rpeRating;
     }
 
     public String getNotes() {
@@ -185,20 +146,28 @@ public class WorkoutResult {
         this.notes = notes;
     }
 
-    public String getWeatherConditions() {
-        return weatherConditions;
+    public Boolean getIsPersonalRecord() {
+        return isPersonalRecord;
     }
 
-    public void setWeatherConditions(String weatherConditions) {
-        this.weatherConditions = weatherConditions;
+    public void setIsPersonalRecord(Boolean isPersonalRecord) {
+        this.isPersonalRecord = isPersonalRecord;
     }
 
-    public String getWorkoutLocation() {
-        return workoutLocation;
+    public java.util.Map<String, String> getMetrics() {
+        return metrics;
     }
 
-    public void setWorkoutLocation(String workoutLocation) {
-        this.workoutLocation = workoutLocation;
+    public void setMetrics(java.util.Map<String, String> metrics) {
+        this.metrics = metrics;
+    }
+
+    public LocalDateTime getCompletedAt() {
+        return completedAt;
+    }
+
+    public void setCompletedAt(LocalDateTime completedAt) {
+        this.completedAt = completedAt;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -215,13 +184,5 @@ public class WorkoutResult {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
-    }
-
-    public enum DifficultyRating {
-        VERY_EASY, EASY, MODERATE, HARD, VERY_HARD
-    }
-
-    public enum MoodRating {
-        TERRIBLE, POOR, NEUTRAL, GOOD, EXCELLENT
     }
 }

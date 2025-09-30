@@ -19,7 +19,7 @@ public class AdvancedSetResult {
     private UUID id;
 
     @ManyToOne(optional = false)
-    private WorkoutSession session;
+    private AdvancedWorkoutResult workoutResult;
 
     @ManyToOne
     private BlockItem plannedItem;
@@ -120,9 +120,9 @@ public class AdvancedSetResult {
         this.completedAt = Instant.now();
     }
 
-    public AdvancedSetResult(WorkoutSession session, Exercise exercise, String blockLabel,
+    public AdvancedSetResult(AdvancedWorkoutResult workoutResult, Exercise exercise, String blockLabel,
                            int blockItemOrder, int setNumber, ResultType resultType) {
-        this.session = session;
+        this.workoutResult = workoutResult;
         this.exercise = exercise;
         this.blockLabel = blockLabel;
         this.blockItemOrder = blockItemOrder;
@@ -166,19 +166,19 @@ public class AdvancedSetResult {
     }
 
     // Static factory methods for different result types
-    public static AdvancedSetResult createTraditionalSet(WorkoutSession session, Exercise exercise,
+    public static AdvancedSetResult createTraditionalSet(AdvancedWorkoutResult workoutResult, Exercise exercise,
                                                        String blockLabel, int order, int setNumber,
                                                        int reps, double weight) {
-        AdvancedSetResult result = new AdvancedSetResult(session, exercise, blockLabel, order, setNumber, ResultType.STRAIGHT_SET);
+        AdvancedSetResult result = new AdvancedSetResult(workoutResult, exercise, blockLabel, order, setNumber, ResultType.STRAIGHT_SET);
         result.setPerformedReps(reps);
         result.setWeight(weight);
         return result;
     }
 
-    public static AdvancedSetResult createTabataRound(WorkoutSession session, Exercise exercise,
+    public static AdvancedSetResult createTabataRound(AdvancedWorkoutResult workoutResult, Exercise exercise,
                                                     String blockLabel, int order, int round,
                                                     int reps, int workTime, int restTime) {
-        AdvancedSetResult result = new AdvancedSetResult(session, exercise, blockLabel, order, round, ResultType.TABATA);
+        AdvancedSetResult result = new AdvancedSetResult(workoutResult, exercise, blockLabel, order, round, ResultType.TABATA);
         result.setPerformedReps(reps);
         result.setWorkTimeSeconds(workTime);
         result.setRestTimeSeconds(restTime);
@@ -186,10 +186,10 @@ public class AdvancedSetResult {
         return result;
     }
 
-    public static AdvancedSetResult createEMOMRound(WorkoutSession session, Exercise exercise,
+    public static AdvancedSetResult createEMOMRound(AdvancedWorkoutResult workoutResult, Exercise exercise,
                                                   String blockLabel, int order, int minute,
                                                   int reps, int secondsRemaining) {
-        AdvancedSetResult result = new AdvancedSetResult(session, exercise, blockLabel, order, minute, ResultType.EMOM);
+        AdvancedSetResult result = new AdvancedSetResult(workoutResult, exercise, blockLabel, order, minute, ResultType.EMOM);
         result.setPerformedReps(reps);
         result.setSecondsRemaining(secondsRemaining);
         result.setIntervalNumber(minute);
@@ -197,30 +197,30 @@ public class AdvancedSetResult {
         return result;
     }
 
-    public static AdvancedSetResult createAMRAPRound(WorkoutSession session, Exercise exercise,
+    public static AdvancedSetResult createAMRAPRound(AdvancedWorkoutResult workoutResult, Exercise exercise,
                                                    String blockLabel, int order, int round,
                                                    int totalRounds, int totalTime) {
-        AdvancedSetResult result = new AdvancedSetResult(session, exercise, blockLabel, order, round, ResultType.AMRAP);
+        AdvancedSetResult result = new AdvancedSetResult(workoutResult, exercise, blockLabel, order, round, ResultType.AMRAP);
         result.setCompletedRounds(totalRounds);
         result.setTotalTimeSeconds(totalTime);
         result.setRoundNumber(round);
         return result;
     }
 
-    public static AdvancedSetResult createDropSet(WorkoutSession session, Exercise exercise,
+    public static AdvancedSetResult createDropSet(AdvancedWorkoutResult workoutResult, Exercise exercise,
                                                 String blockLabel, int order, int setNumber,
                                                 List<Integer> repsPerDrop, List<Double> weightsPerDrop) {
-        AdvancedSetResult result = new AdvancedSetResult(session, exercise, blockLabel, order, setNumber, ResultType.DROP_SET);
+        AdvancedSetResult result = new AdvancedSetResult(workoutResult, exercise, blockLabel, order, setNumber, ResultType.DROP_SET);
         result.setDropSetReps(repsPerDrop);
         result.setDropSetWeights(weightsPerDrop);
         result.setPerformedReps(repsPerDrop.stream().mapToInt(Integer::intValue).sum());
         return result;
     }
 
-    public static AdvancedSetResult createCircuitExercise(WorkoutSession session, Exercise exercise,
+    public static AdvancedSetResult createCircuitExercise(AdvancedWorkoutResult workoutResult, Exercise exercise,
                                                         String blockLabel, int order, int position,
                                                         int reps, int workTime) {
-        AdvancedSetResult result = new AdvancedSetResult(session, exercise, blockLabel, order, position, ResultType.CIRCUIT);
+        AdvancedSetResult result = new AdvancedSetResult(workoutResult, exercise, blockLabel, order, position, ResultType.CIRCUIT);
         result.setPerformedReps(reps);
         result.setWorkTimeSeconds(workTime);
         result.setCircuitPosition(position);
@@ -266,8 +266,8 @@ public class AdvancedSetResult {
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
 
-    public WorkoutSession getSession() { return session; }
-    public void setSession(WorkoutSession session) { this.session = session; }
+    public AdvancedWorkoutResult getWorkoutResult() { return workoutResult; }
+    public void setWorkoutResult(AdvancedWorkoutResult workoutResult) { this.workoutResult = workoutResult; }
 
     public BlockItem getPlannedItem() { return plannedItem; }
     public void setPlannedItem(BlockItem plannedItem) { this.plannedItem = plannedItem; }

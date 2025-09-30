@@ -1,7 +1,7 @@
 package com.fitnesscoach.controller;
 
-import com.fitnesscoach.model.User;
-import com.fitnesscoach.service.UserService;
+import com.fitnesscoach.model.legacy.User;
+import com.fitnesscoach.service.legacy.UserService;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;

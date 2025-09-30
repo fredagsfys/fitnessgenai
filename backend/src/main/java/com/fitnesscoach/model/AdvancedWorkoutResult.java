@@ -19,6 +19,8 @@ public class AdvancedWorkoutResult {
     @GeneratedValue(strategy = GenerationType.UUID)
     private UUID id;
 
+    private UUID userId;
+
     @ManyToOne
     private WorkoutSessionTemplate template;
 
@@ -116,7 +118,7 @@ public class AdvancedWorkoutResult {
     private List<BlockResult> blockResults = new ArrayList<>();
 
     // Individual set results
-    @OneToMany(mappedBy = "session", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OneToMany(mappedBy = "workoutResult", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("blockLabel ASC, blockItemOrder ASC, setNumber ASC")
     private List<AdvancedSetResult> setResults = new ArrayList<>();
 
@@ -265,7 +267,7 @@ public class AdvancedWorkoutResult {
 
     public Double getFatigueScore() {
         if (energyLevelPre != null && energyLevelPost != null) {
-            return energyLevelPre - energyLevelPost;
+            return (double)(energyLevelPre - energyLevelPost);
         }
         return null;
     }
@@ -311,6 +313,9 @@ public class AdvancedWorkoutResult {
     // Getters and setters
     public UUID getId() { return id; }
     public void setId(UUID id) { this.id = id; }
+
+    public UUID getUserId() { return userId; }
+    public void setUserId(UUID userId) { this.userId = userId; }
 
     public WorkoutSessionTemplate getTemplate() { return template; }
     public void setTemplate(WorkoutSessionTemplate template) { this.template = template; }

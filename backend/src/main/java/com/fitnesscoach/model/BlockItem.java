@@ -19,10 +19,28 @@ public class BlockItem {
     private Exercise exercise;
 
     @Embedded
+    @AttributeOverrides({
+        @AttributeOverride(name = "weekStart", column = @Column(name = "prescription_week_start")),
+        @AttributeOverride(name = "weekEnd", column = @Column(name = "prescription_week_end")),
+        @AttributeOverride(name = "sets", column = @Column(name = "prescription_sets")),
+        @AttributeOverride(name = "targetReps", column = @Column(name = "prescription_target_reps")),
+        @AttributeOverride(name = "tempo", column = @Column(name = "prescription_tempo")),
+        @AttributeOverride(name = "restSeconds", column = @Column(name = "prescription_rest_seconds")),
+        @AttributeOverride(name = "coachNotes", column = @Column(name = "prescription_coach_notes"))
+    })
     private Prescription prescription;
 
     // Enhanced prescription for advanced workout types
     @Embedded
+    @AttributeOverrides({
+        @AttributeOverride(name = "weekStart", column = @Column(name = "advanced_week_start")),
+        @AttributeOverride(name = "weekEnd", column = @Column(name = "advanced_week_end")),
+        @AttributeOverride(name = "sets", column = @Column(name = "advanced_sets")),
+        @AttributeOverride(name = "targetReps", column = @Column(name = "advanced_target_reps")),
+        @AttributeOverride(name = "tempo", column = @Column(name = "advanced_tempo")),
+        @AttributeOverride(name = "restTimeSeconds", column = @Column(name = "advanced_rest_seconds")),
+        @AttributeOverride(name = "coachNotes", column = @Column(name = "advanced_coach_notes"))
+    })
     private AdvancedPrescription advancedPrescription;
 
     public BlockItem() {}

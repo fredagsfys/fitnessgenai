@@ -1,0 +1,15 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(npx react-native:*)",
+      "Read(//c/Users/devha/Documents/Github/fitnessgenai/**)",
+      "Bash(npm run android:*)",
+      "Bash(npm install)",
+      "Bash(./gradlew.bat:*)",
+      "Bash(npm install:*)",
+      "Bash(npm ls:*)"
+    ],
+    "deny": [],
+    "ask": []
+  }
+}

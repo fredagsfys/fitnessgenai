@@ -1,13 +1,10 @@
 import axios from 'axios';
+import { Platform } from 'react-native';
 
-const API_BASE_URL = 'http://localhost:8080/api';
-
-// Simple base64 encoding function for React Native
-const encodeBase64 = (_str: string): string => {
-  // For demo purposes - in production, use proper authentication
-  // Using hardcoded value for demo - admin:password = YWRtaW46cGFzc3dvcmQ=
-  return 'YWRtaW46cGFzc3dvcmQ=';
-};
+// Android emulator uses 10.0.2.2 to access host machine's localhost
+const API_BASE_URL = Platform.OS === 'android'
+  ? 'http://10.0.2.2:8080/api'
+  : 'http://localhost:8080/api';
 
 const apiClient = axios.create({
   baseURL: API_BASE_URL,
@@ -16,19 +13,6 @@ const apiClient = axios.create({
     'Content-Type': 'application/json',
   },
 });
-
-apiClient.interceptors.request.use(
-  (config) => {
-    // Basic auth for demo purposes - in production, use proper authentication
-    const credentials = 'admin:password';
-    const token = 'Basic ' + encodeBase64(credentials);
-    if (token) {
-      config.headers.Authorization = token;
-    }
-    return config;
-  },
-  (error) => Promise.reject(error)
-);
 
 apiClient.interceptors.response.use(
   (response) => response,
@@ -39,11 +23,12 @@ apiClient.interceptors.response.use(
 );
 
 export interface Exercise {
-  id: number;
+  id: string;
   name: string;
   description: string;
   category: string;
-  muscleGroup: string;
+  primaryMuscle: string;
+  muscleGroup: string; // Alias for primaryMuscle for backward compatibility
   equipment?: string;
   instructions?: string;
   imageUrl?: string;
@@ -51,19 +36,42 @@ export interface Exercise {
 
 export interface Workout {
   id: number;
+  userId: number;
   name: string;
-  description: string;
-  duration: number;
-  difficulty: string;
-  exercises: Exercise[];
+  description?: string;
+  scheduledDate?: string;
+  startedAt?: string;
+  completedAt?: string;
+  status: 'PLANNED' | 'IN_PROGRESS' | 'COMPLETED' | 'CANCELLED';
+  estimatedDurationMinutes?: number;
+  actualDurationMinutes?: number;
+  caloriesBurned?: number;
+  notes?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  exercises?: Exercise[];
 }
 
 export interface User {
   id: number;
   username: string;
   email: string;
-  firstName: string;
-  lastName: string;
+  password?: string;
+  firstName?: string;
+  lastName?: string;
+  createdAt?: string;
+  updatedAt?: string;
+  isActive?: boolean;
+}
+
+export interface WorkoutResult {
+  id: number;
+  workoutId: number;
+  userId: number;
+  completedAt: string;
+  duration: number;
+  notes?: string;
+  caloriesBurned?: number;
 }
 
 export interface UserProgress {
@@ -79,25 +87,31 @@ export const exerciseService = {
   getAllExercises: (): Promise<Exercise[]> =>
     apiClient.get('/exercises').then(response => response.data),
 
-  getExerciseById: (id: number): Promise<Exercise> =>
+  getExerciseById: (id: string): Promise<Exercise> =>
     apiClient.get(`/exercises/${id}`).then(response => response.data),
 
   getExercisesByCategory: (category: string): Promise<Exercise[]> =>
     apiClient.get(`/exercises/category/${category}`).then(response => response.data),
 
   getExercisesByMuscleGroup: (muscleGroup: string): Promise<Exercise[]> =>
-    apiClient.get(`/exercises/muscle-group/${muscleGroup}`).then(response => response.data),
+    apiClient.get(`/exercises/muscle/${muscleGroup}`).then(response => response.data),
 
-  getMuscleGroups: (): Promise<string[]> =>
-    apiClient.get('/exercises/muscle-groups').then(response => response.data),
+  getMuscleGroups: async (): Promise<string[]> => {
+    const exercises = await apiClient.get('/exercises').then(response => response.data);
+    const muscles = new Set<string>();
+    exercises.forEach((ex: Exercise) => {
+      if (ex.primaryMuscle) muscles.add(ex.primaryMuscle);
+    });
+    return Array.from(muscles);
+  },
 
   createExercise: (exercise: Omit<Exercise, 'id'>): Promise<Exercise> =>
     apiClient.post('/exercises', exercise).then(response => response.data),
 
-  updateExercise: (id: number, exercise: Partial<Exercise>): Promise<Exercise> =>
+  updateExercise: (id: string, exercise: Partial<Exercise>): Promise<Exercise> =>
     apiClient.put(`/exercises/${id}`, exercise).then(response => response.data),
 
-  deleteExercise: (id: number): Promise<void> =>
+  deleteExercise: (id: string): Promise<void> =>
     apiClient.delete(`/exercises/${id}`),
 };
 
@@ -138,18 +152,29 @@ export const userService = {
     apiClient.delete(`/users/${id}`),
 };
 
+export const workoutResultService = {
+  getUserWorkoutResults: (userId: number): Promise<WorkoutResult[]> =>
+    apiClient.get(`/api/workout-results/user/${userId}`).then(response => response.data),
+
+  createWorkoutResult: (workoutId: number, result: Omit<WorkoutResult, 'id'>): Promise<WorkoutResult> =>
+    apiClient.post(`/workouts/${workoutId}/complete-with-results`, result).then(response => response.data),
+
+  updateWorkoutResult: (id: number, result: Partial<WorkoutResult>): Promise<WorkoutResult> =>
+    apiClient.put(`/api/workout-results/${id}`, result).then(response => response.data),
+
+  deleteWorkoutResult: (id: number): Promise<void> =>
+    apiClient.delete(`/api/workout-results/${id}`),
+};
+
 export const progressService = {
   getUserProgress: (userId: number): Promise<UserProgress[]> =>
-    apiClient.get(`/users/${userId}/progress`).then(response => response.data),
+    apiClient.get(`/user-progress/user/${userId}`).then(response => response.data),
 
   createProgress: (progress: Omit<UserProgress, 'id'>): Promise<UserProgress> =>
-    apiClient.post('/workout-results', progress).then(response => response.data),
-
-  updateProgress: (id: number, progress: Partial<UserProgress>): Promise<UserProgress> =>
-    apiClient.put(`/workout-results/${id}`, progress).then(response => response.data),
+    apiClient.post('/user-progress', progress).then(response => response.data),
 
   deleteProgress: (id: number): Promise<void> =>
-    apiClient.delete(`/workout-results/${id}`),
+    apiClient.delete(`/user-progress/${id}`),
 };
 
 export default apiClient;

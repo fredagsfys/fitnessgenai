@@ -1,14 +1,9 @@
 package com.fitnesscoach.model.legacy;
 
 import jakarta.persistence.*;
-import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
-import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
-import java.util.ArrayList;
-import java.util.List;
 
 @Entity
 @Table(name = "workouts")
@@ -18,64 +13,80 @@ public class Workout {
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @NotBlank(message = "Workout name is required")
+    @NotNull
+    @Column(name = "user_id", nullable = false)
+    private Long userId;
+
     @Column(nullable = false)
     private String name;
 
+    @Column(columnDefinition = "TEXT")
     private String description;
 
-    @NotNull(message = "Workout date is required")
-    @Column(name = "workout_date", nullable = false)
-    private LocalDateTime workoutDate;
+    @Column(name = "scheduled_date")
+    private LocalDateTime scheduledDate;
 
-    @Column(name = "duration_minutes")
-    private Integer durationMinutes;
+    @Column(name = "started_at")
+    private LocalDateTime startedAt;
+
+    @Column(name = "completed_at")
+    private LocalDateTime completedAt;
+
+    @Enumerated(EnumType.STRING)
+    @Column(nullable = false)
+    private WorkoutStatus status = WorkoutStatus.PLANNED;
+
+    @Column(name = "estimated_duration_minutes")
+    private Integer estimatedDurationMinutes;
+
+    @Column(name = "actual_duration_minutes")
+    private Integer actualDurationMinutes;
 
     @Column(name = "calories_burned")
     private Integer caloriesBurned;
 
-    @Enumerated(EnumType.STRING)
-    private WorkoutType type;
-
-    @Enumerated(EnumType.STRING)
-    private WorkoutStatus status;
-
+    @Column(columnDefinition = "TEXT")
     private String notes;
 
-    @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "user_id", nullable = false)
-    private User user;
-
-    @OneToMany(mappedBy = "workout", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private List<Exercise> exercises = new ArrayList<>();
-
-    @OneToOne(mappedBy = "workout", cascade = CascadeType.ALL, fetch = FetchType.LAZY)
-    private WorkoutResult workoutResult;
-
-    @CreationTimestamp
-    @Column(name = "created_at", updatable = false)
+    @Column(name = "created_at")
     private LocalDateTime createdAt;
 
-    @UpdateTimestamp
     @Column(name = "updated_at")
     private LocalDateTime updatedAt;
 
-    public Workout() {}
-
-    public Workout(String name, LocalDateTime workoutDate, User user) {
-        this.name = name;
-        this.workoutDate = workoutDate;
-        this.user = user;
-        this.status = WorkoutStatus.PLANNED;
+    public enum WorkoutStatus {
+        PLANNED,
+        IN_PROGRESS,
+        COMPLETED,
+        CANCELLED
     }
 
-    // Getters and Setters
+    @PrePersist
+    protected void onCreate() {
+        createdAt = LocalDateTime.now();
+        updatedAt = LocalDateTime.now();
+    }
+
+    @PreUpdate
+    protected void onUpdate() {
+        updatedAt = LocalDateTime.now();
+    }
+
+    // Getters and setters
     public Long getId() {
         return id;
     }
 
     public void setId(Long id) {
         this.id = id;
+    }
+
+    public Long getUserId() {
+        return userId;
+    }
+
+    public void setUserId(Long userId) {
+        this.userId = userId;
     }
 
     public String getName() {
@@ -94,36 +105,28 @@ public class Workout {
         this.description = description;
     }
 
-    public LocalDateTime getWorkoutDate() {
-        return workoutDate;
+    public LocalDateTime getScheduledDate() {
+        return scheduledDate;
     }
 
-    public void setWorkoutDate(LocalDateTime workoutDate) {
-        this.workoutDate = workoutDate;
+    public void setScheduledDate(LocalDateTime scheduledDate) {
+        this.scheduledDate = scheduledDate;
     }
 
-    public Integer getDurationMinutes() {
-        return durationMinutes;
+    public LocalDateTime getStartedAt() {
+        return startedAt;
     }
 
-    public void setDurationMinutes(Integer durationMinutes) {
-        this.durationMinutes = durationMinutes;
+    public void setStartedAt(LocalDateTime startedAt) {
+        this.startedAt = startedAt;
     }
 
-    public Integer getCaloriesBurned() {
-        return caloriesBurned;
+    public LocalDateTime getCompletedAt() {
+        return completedAt;
     }
 
-    public void setCaloriesBurned(Integer caloriesBurned) {
-        this.caloriesBurned = caloriesBurned;
-    }
-
-    public WorkoutType getType() {
-        return type;
-    }
-
-    public void setType(WorkoutType type) {
-        this.type = type;
+    public void setCompletedAt(LocalDateTime completedAt) {
+        this.completedAt = completedAt;
     }
 
     public WorkoutStatus getStatus() {
@@ -134,28 +137,36 @@ public class Workout {
         this.status = status;
     }
 
+    public Integer getEstimatedDurationMinutes() {
+        return estimatedDurationMinutes;
+    }
+
+    public void setEstimatedDurationMinutes(Integer estimatedDurationMinutes) {
+        this.estimatedDurationMinutes = estimatedDurationMinutes;
+    }
+
+    public Integer getActualDurationMinutes() {
+        return actualDurationMinutes;
+    }
+
+    public void setActualDurationMinutes(Integer actualDurationMinutes) {
+        this.actualDurationMinutes = actualDurationMinutes;
+    }
+
+    public Integer getCaloriesBurned() {
+        return caloriesBurned;
+    }
+
+    public void setCaloriesBurned(Integer caloriesBurned) {
+        this.caloriesBurned = caloriesBurned;
+    }
+
     public String getNotes() {
         return notes;
     }
 
     public void setNotes(String notes) {
         this.notes = notes;
-    }
-
-    public User getUser() {
-        return user;
-    }
-
-    public void setUser(User user) {
-        this.user = user;
-    }
-
-    public List<Exercise> getExercises() {
-        return exercises;
-    }
-
-    public void setExercises(List<Exercise> exercises) {
-        this.exercises = exercises;
     }
 
     public LocalDateTime getCreatedAt() {
@@ -172,21 +183,5 @@ public class Workout {
 
     public void setUpdatedAt(LocalDateTime updatedAt) {
         this.updatedAt = updatedAt;
-    }
-
-    public WorkoutResult getWorkoutResult() {
-        return workoutResult;
-    }
-
-    public void setWorkoutResult(WorkoutResult workoutResult) {
-        this.workoutResult = workoutResult;
-    }
-
-    public enum WorkoutType {
-        CARDIO, STRENGTH, FLEXIBILITY, SPORTS, MIXED
-    }
-
-    public enum WorkoutStatus {
-        PLANNED, IN_PROGRESS, COMPLETED, CANCELLED
     }
 }
