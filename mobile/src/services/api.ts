@@ -87,8 +87,11 @@ export interface Prescription {
 }
 
 export interface BlockItem {
+  id?: string;
   orderIndex: number;
-  exercise: Exercise;
+  exercise?: Exercise;
+  exerciseId?: string;
+  exerciseName?: string;
   prescription: Prescription;
 }
 
@@ -167,6 +170,82 @@ export interface UserProgress {
   completedAt: string;
   duration: number;
   notes?: string;
+}
+
+// Advanced Workout Result types (compatible with all workout types)
+export interface SetResultSummary {
+  id: string;
+  blockLabel: string;
+  blockItemOrder: number;
+  setNumber: number;
+  exerciseName: string;
+  targetReps?: number;
+  performedReps?: number;
+  weight?: number;
+  weightUnit?: 'KG' | 'LBS' | 'BODYWEIGHT';
+  rpe?: number;
+  restTakenSec?: number;
+}
+
+export type SessionCompletionStatus =
+  | 'COMPLETED' | 'PARTIALLY_COMPLETED' | 'MODIFIED'
+  | 'TERMINATED_EARLY' | 'SCALED' | 'SCALED_UP' | 'MISSED';
+
+export interface AdvancedWorkoutResult {
+  id: string;
+  userId: string;
+  sessionTemplateId?: string;
+  sessionTitle?: string;
+  date: string;
+  week?: number;
+  programWeek?: number;
+
+  // Timing
+  startTime?: string;
+  endTime?: string;
+  totalDurationSeconds?: number;
+  workTimeSeconds?: number;
+  restTimeSeconds?: number;
+
+  // Status and metrics
+  completionStatus?: SessionCompletionStatus;
+  totalReps?: number;
+  totalVolumeLoad?: number;
+  averageRPE?: number;
+  caloriesBurned?: number;
+
+  // Workout type specific - AMRAP/For Time
+  totalRounds?: number;
+  targetRounds?: number;
+  completedInTimeLimit?: boolean;
+  wodResult?: string; // Time or rounds result
+  rxCompleted?: boolean;
+
+  // EMOM specific
+  emomMinutesCompleted?: number;
+  emomMinutesTarget?: number;
+  emomFailedMinutes?: number;
+
+  // Tabata specific
+  tabataRoundsCompleted?: number;
+  tabataRoundsTarget?: number;
+  tabataAverageReps?: number;
+
+  // Circuit specific
+  circuitRoundsCompleted?: number;
+  averageCircuitTime?: number;
+
+  // Quality ratings (1-10)
+  workoutQuality?: number;
+  workoutEnjoyment?: number;
+  difficultyRating?: number;
+
+  // Notes
+  notes?: string;
+  achievements?: string;
+
+  // Set results
+  setResults?: SetResultSummary[];
 }
 
 export const exerciseService = {
@@ -250,6 +329,47 @@ export const workoutResultService = {
 
   deleteWorkoutResult: (id: number): Promise<void> =>
     apiClient.delete(`/api/workout-results/${id}`),
+};
+
+// Advanced Workout Result Service (supports all workout types)
+export const advancedWorkoutResultService = {
+  getAllResults: (): Promise<AdvancedWorkoutResult[]> =>
+    apiClient.get('/workout-results').then(response => response.data),
+
+  getResultById: (id: string): Promise<AdvancedWorkoutResult> =>
+    apiClient.get(`/workout-results/${id}`).then(response => response.data),
+
+  getResultsByUser: (userId: string): Promise<AdvancedWorkoutResult[]> =>
+    apiClient.get(`/workout-results/user/${userId}`).then(response => response.data),
+
+  getResultsByUserAndDateRange: (
+    userId: string,
+    startDate: string,
+    endDate: string
+  ): Promise<AdvancedWorkoutResult[]> =>
+    apiClient.get(`/workout-results/user/${userId}/range`, {
+      params: { startDate, endDate }
+    }).then(response => response.data),
+
+  getResultsByTemplate: (templateId: string): Promise<AdvancedWorkoutResult[]> =>
+    apiClient.get(`/workout-results/template/${templateId}`).then(response => response.data),
+
+  createResult: (result: Omit<AdvancedWorkoutResult, 'id'>): Promise<AdvancedWorkoutResult> =>
+    apiClient.post('/workout-results', result).then(response => response.data),
+
+  updateResult: (id: string, result: Partial<AdvancedWorkoutResult>): Promise<AdvancedWorkoutResult> =>
+    apiClient.put(`/workout-results/${id}`, result).then(response => response.data),
+
+  deleteResult: (id: string): Promise<void> =>
+    apiClient.delete(`/workout-results/${id}`),
+
+  startWorkoutSession: (sessionTemplateId: string, userId: string): Promise<AdvancedWorkoutResult> =>
+    apiClient.post('/workout-results/start', null, {
+      params: { sessionTemplateId, userId }
+    }).then(response => response.data),
+
+  finishWorkoutSession: (id: string): Promise<AdvancedWorkoutResult> =>
+    apiClient.post(`/workout-results/${id}/finish`).then(response => response.data),
 };
 
 export const progressService = {

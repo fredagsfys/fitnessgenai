@@ -1,56 +1,58 @@
-import React, {useState, useEffect} from 'react';
+import React, {useState, useEffect, useCallback} from 'react';
 import {
   View,
   Text,
   StyleSheet,
   ActivityIndicator,
   Alert,
-  FlatList,
   TouchableOpacity,
   RefreshControl,
-  Modal,
-  TextInput,
+  ScrollView,
+  Dimensions,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
+import {useFocusEffect, useNavigation} from '@react-navigation/native';
+import {StackNavigationProp} from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialIcons';
-import {progressService, userService, workoutService, UserProgress, User, Workout} from '../services/api';
+import {
+  userService,
+  workoutService,
+  advancedWorkoutResultService,
+  AdvancedWorkoutResult,
+} from '../services/api';
+import {RootStackParamList} from '../navigation/AppNavigator';
+
+const {width} = Dimensions.get('window');
+type NavigationProp = StackNavigationProp<RootStackParamList>;
 
 const ProgressScreen = () => {
-  const [progress, setProgress] = useState<UserProgress[]>([]);
+  const navigation = useNavigation<NavigationProp>();
+  const [results, setResults] = useState<AdvancedWorkoutResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [refreshing, setRefreshing] = useState(false);
-  const [modalVisible, setModalVisible] = useState(false);
-  const [users, setUsers] = useState<User[]>([]);
-  const [workouts, setWorkouts] = useState<Workout[]>([]);
-  const [progressForm, setProgressForm] = useState({
-    userId: '',
-    workoutId: '',
-    duration: '',
-    notes: '',
-  });
 
   const loadData = async () => {
     try {
       setLoading(true);
-      const [usersData, workoutsData] = await Promise.all([
-        userService.getAllUsers(),
-        workoutService.getAllWorkouts(),
-      ]);
-
-      setUsers(usersData);
-      setWorkouts(workoutsData);
-
-      if (usersData.length > 0) {
-        const progressData = await progressService.getUserProgress(usersData[0].id);
-        setProgress(progressData);
-      }
+      const hardcodedUserId = '00000000-0000-0000-0000-000000000001';
+      const data = await advancedWorkoutResultService.getResultsByUser(hardcodedUserId);
+      setResults(data);
     } catch (error) {
-      Alert.alert('Error', 'Failed to load progress data');
-      console.error('Error loading progress:', error);
+      console.error('Error loading results:', error);
     } finally {
       setLoading(false);
     }
   };
+
+  useEffect(() => {
+    loadData();
+  }, []);
+
+  useFocusEffect(
+    useCallback(() => {
+      loadData();
+    }, [])
+  );
 
   const onRefresh = async () => {
     setRefreshing(true);
@@ -58,259 +60,210 @@ const ProgressScreen = () => {
     setRefreshing(false);
   };
 
-  const openCreateModal = () => {
-    setProgressForm({
-      userId: users.length > 0 ? users[0].id.toString() : '',
-      workoutId: '',
-      duration: '',
-      notes: '',
-    });
-    setModalVisible(true);
-  };
+  // Last 7 days for recent activity
+  const recentResults = results
+    .filter(r => {
+      const date = new Date(r.date);
+      const weekAgo = new Date();
+      weekAgo.setDate(weekAgo.getDate() - 7);
+      return date >= weekAgo;
+    })
+    .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+    .slice(0, 5);
 
-  const handleSaveProgress = async () => {
-    if (!progressForm.userId || !progressForm.workoutId || !progressForm.duration) {
-      Alert.alert('Error', 'Please fill in all required fields');
-      return;
-    }
+  // Stats - all time
+  const totalWorkouts = results.length;
+  const totalVolume = results.reduce((sum, r) => sum + (r.totalVolumeLoad || 0), 0);
+  const thisWeekWorkouts = recentResults.length;
 
-    if (isNaN(Number(progressForm.duration))) {
-      Alert.alert('Error', 'Please enter a valid duration in minutes');
-      return;
-    }
-
-    try {
-      const progressData = {
-        userId: Number(progressForm.userId),
-        workoutId: Number(progressForm.workoutId),
-        duration: Number(progressForm.duration),
-        completedAt: new Date().toISOString(),
-        notes: progressForm.notes.trim(),
-      };
-
-      await progressService.createProgress(progressData);
-      Alert.alert('Success', 'Progress recorded successfully');
-      setModalVisible(false);
-      loadData();
-    } catch (error) {
-      Alert.alert('Error', 'Failed to save progress');
-      console.error('Error saving progress:', error);
-    }
-  };
-
-  const handleDeleteProgress = (progressItem: UserProgress) => {
-    Alert.alert(
-      'Delete Progress',
-      'Are you sure you want to delete this progress entry?',
-      [
-        {text: 'Cancel', style: 'cancel'},
-        {
-          text: 'Delete',
-          style: 'destructive',
-          onPress: async () => {
-            try {
-              await progressService.deleteProgress(progressItem.id);
-              Alert.alert('Success', 'Progress deleted successfully');
-              loadData();
-            } catch (error) {
-              Alert.alert('Error', 'Failed to delete progress');
-              console.error('Error deleting progress:', error);
-            }
-          },
-        },
-      ]
+  // Streak calculation
+  const getStreak = () => {
+    if (results.length === 0) return 0;
+    const dates = [...new Set(results.map(r => r.date))].sort((a, b) =>
+      new Date(b).getTime() - new Date(a).getTime()
     );
-  };
-
-  const getWorkoutName = (workoutId: number) => {
-    const workout = workouts.find(w => w.id === workoutId);
-    return workout?.name || 'Unknown Workout';
+    let streak = 0;
+    let currentDate = new Date();
+    for (const dateStr of dates) {
+      const workoutDate = new Date(dateStr);
+      const diffDays = Math.floor((currentDate.getTime() - workoutDate.getTime()) / (1000 * 60 * 60 * 24));
+      if (diffDays <= 1 + streak) {
+        streak++;
+        currentDate = workoutDate;
+      } else {
+        break;
+      }
+    }
+    return streak;
   };
 
   const formatDate = (dateString: string) => {
     const date = new Date(dateString);
-    return date.toLocaleDateString() + ' ' + date.toLocaleTimeString([], {hour: '2-digit', minute: '2-digit'});
+    const today = new Date();
+    const yesterday = new Date(today);
+    yesterday.setDate(yesterday.getDate() - 1);
+
+    if (date.toDateString() === today.toDateString()) return 'Today';
+    if (date.toDateString() === yesterday.toDateString()) return 'Yesterday';
+
+    const daysDiff = Math.floor((today.getTime() - date.getTime()) / (1000 * 60 * 60 * 24));
+    if (daysDiff < 7) return `${daysDiff} days ago`;
+
+    return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' });
   };
 
-  const getTotalWorkouts = () => progress.length;
-  const getTotalTime = () => progress.reduce((total, item) => total + item.duration, 0);
-  const getAverageTime = () => {
-    const total = getTotalTime();
-    return progress.length > 0 ? Math.round(total / progress.length) : 0;
+  const getWorkoutTypeIcon = (result: AdvancedWorkoutResult) => {
+    if (result.emomMinutesCompleted !== undefined) return 'schedule';
+    if (result.tabataRoundsCompleted !== undefined) return 'flash-on';
+    if (result.circuitRoundsCompleted !== undefined) return 'repeat';
+    if (result.totalRounds !== undefined) return 'loop';
+    return 'fitness-center';
   };
 
-  useEffect(() => {
-    loadData();
-  }, []);
-
-  const renderProgress = ({item}: {item: UserProgress}) => (
-    <View style={styles.progressCard}>
-      <View style={styles.progressHeader}>
-        <View style={styles.progressInfo}>
-          <Text style={styles.workoutName}>{getWorkoutName(item.workoutId)}</Text>
-          <Text style={styles.completedDate}>{formatDate(item.completedAt)}</Text>
-        </View>
-        <TouchableOpacity
-          style={styles.deleteButton}
-          onPress={() => handleDeleteProgress(item)}
-        >
-          <Icon name="delete" size={20} color="#FF3B30" />
-        </TouchableOpacity>
-      </View>
-
-      <View style={styles.progressDetails}>
-        <View style={styles.detailItem}>
-          <Icon name="schedule" size={16} color="#666" />
-          <Text style={styles.detailText}>{item.duration} minutes</Text>
-        </View>
-      </View>
-
-      {item.notes && (
-        <Text style={styles.progressNotes}>{item.notes}</Text>
-      )}
-    </View>
-  );
+  const getWorkoutTypeColor = (result: AdvancedWorkoutResult) => {
+    if (result.emomMinutesCompleted !== undefined) return '#00BCD4';
+    if (result.tabataRoundsCompleted !== undefined) return '#E74C3C';
+    if (result.circuitRoundsCompleted !== undefined) return '#4ECDC4';
+    if (result.totalRounds !== undefined) return '#FF9F43';
+    return '#007AFF';
+  };
 
   if (loading && !refreshing) {
     return (
       <View style={styles.centerContainer}>
-        <ActivityIndicator size="large" color="#007AFF" />
-        <Text style={styles.loadingText}>Loading progress...</Text>
+        <ActivityIndicator size="large" color="#000" />
       </View>
     );
   }
 
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
+      {/* Header */}
       <View style={styles.header}>
-        <Text style={styles.title}>Progress</Text>
-        <TouchableOpacity style={styles.addButton} onPress={openCreateModal}>
-          <Icon name="add" size={24} color="white" />
+        <Text style={styles.headerTitle}>Progress</Text>
+        <TouchableOpacity
+          style={styles.statsButton}
+          onPress={() => navigation.navigate('StatsDetail' as any, { results })}
+        >
+          <Icon name="analytics" size={24} color="#000" />
         </TouchableOpacity>
       </View>
 
-      <View style={styles.statsContainer}>
-        <View style={styles.statCard}>
-          <Text style={styles.statNumber}>{getTotalWorkouts()}</Text>
-          <Text style={styles.statLabel}>Total Workouts</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statNumber}>{getTotalTime()}</Text>
-          <Text style={styles.statLabel}>Total Minutes</Text>
-        </View>
-        <View style={styles.statCard}>
-          <Text style={styles.statNumber}>{getAverageTime()}</Text>
-          <Text style={styles.statLabel}>Avg Minutes</Text>
-        </View>
-      </View>
-
-      <FlatList
-        data={progress}
-        renderItem={renderProgress}
-        keyExtractor={item => item.id.toString()}
-        style={styles.progressList}
-        refreshControl={
-          <RefreshControl refreshing={refreshing} onRefresh={onRefresh} />
-        }
-        ListEmptyComponent={
-          <View style={styles.emptyContainer}>
-            <Icon name="trending-up" size={64} color="#ccc" />
-            <Text style={styles.emptyText}>No progress recorded yet</Text>
-            <TouchableOpacity style={styles.recordFirstButton} onPress={openCreateModal}>
-              <Text style={styles.recordFirstButtonText}>Record your first workout</Text>
-            </TouchableOpacity>
-          </View>
-        }
-      />
-
-      <Modal
-        animationType="slide"
-        transparent={true}
-        visible={modalVisible}
-        onRequestClose={() => setModalVisible(false)}
+      <ScrollView
+        refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} />}
+        showsVerticalScrollIndicator={false}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Record Progress</Text>
-              <TouchableOpacity
-                onPress={() => setModalVisible(false)}
-                style={styles.closeButton}
-              >
-                <Icon name="close" size={24} color="#666" />
-              </TouchableOpacity>
+        {/* Hero Stats */}
+        <View style={styles.heroSection}>
+          <View style={styles.heroStat}>
+            <Text style={styles.heroNumber}>{totalWorkouts}</Text>
+            <Text style={styles.heroLabel}>Total Workouts</Text>
+          </View>
+          <View style={styles.heroDivider} />
+          <View style={styles.heroStat}>
+            <View style={styles.streakContainer}>
+              <Icon name="local-fire-department" size={32} color="#FF6B6B" />
+              <Text style={styles.heroNumber}>{getStreak()}</Text>
             </View>
-
-            <Text style={styles.label}>Workout</Text>
-            <View style={styles.pickerContainer}>
-              <TouchableOpacity style={styles.picker}>
-                <Text style={styles.pickerText}>
-                  {progressForm.workoutId ? getWorkoutName(Number(progressForm.workoutId)) : 'Select a workout'}
-                </Text>
-                <Icon name="expand-more" size={24} color="#666" />
-              </TouchableOpacity>
-            </View>
-
-            <Text style={styles.workoutsList}>Available Workouts:</Text>
-            <FlatList
-              data={workouts}
-              keyExtractor={item => item.id.toString()}
-              style={styles.workoutSelectList}
-              renderItem={({item}) => (
-                <TouchableOpacity
-                  style={[
-                    styles.workoutOption,
-                    progressForm.workoutId === item.id.toString() && styles.selectedWorkoutOption,
-                  ]}
-                  onPress={() => setProgressForm({...progressForm, workoutId: item.id.toString()})}
-                >
-                  <Text style={[
-                    styles.workoutOptionText,
-                    progressForm.workoutId === item.id.toString() && styles.selectedWorkoutOptionText,
-                  ]}>
-                    {item.name}
-                  </Text>
-                  {progressForm.workoutId === item.id.toString() && (
-                    <Icon name="check" size={20} color="#007AFF" />
-                  )}
-                </TouchableOpacity>
-              )}
-            />
-
-            <TextInput
-              style={styles.input}
-              placeholder="Duration (minutes)"
-              value={progressForm.duration}
-              onChangeText={text => setProgressForm({...progressForm, duration: text})}
-              keyboardType="numeric"
-            />
-
-            <TextInput
-              style={[styles.input, styles.textArea]}
-              placeholder="Notes (optional)"
-              value={progressForm.notes}
-              onChangeText={text => setProgressForm({...progressForm, notes: text})}
-              multiline
-              numberOfLines={3}
-            />
-
-            <View style={styles.modalActions}>
-              <TouchableOpacity
-                style={styles.cancelButton}
-                onPress={() => setModalVisible(false)}
-              >
-                <Text style={styles.cancelButtonText}>Cancel</Text>
-              </TouchableOpacity>
-              <TouchableOpacity
-                style={styles.saveButton}
-                onPress={handleSaveProgress}
-              >
-                <Text style={styles.saveButtonText}>Record</Text>
-              </TouchableOpacity>
-            </View>
+            <Text style={styles.heroLabel}>Day Streak</Text>
           </View>
         </View>
-      </Modal>
+
+        {/* Quick Stats */}
+        <View style={styles.quickStatsSection}>
+          <View style={styles.quickStatCard}>
+            <Text style={styles.quickStatNumber}>{thisWeekWorkouts}</Text>
+            <Text style={styles.quickStatLabel}>This Week</Text>
+          </View>
+          <View style={styles.quickStatCard}>
+            <Text style={styles.quickStatNumber}>{Math.round(totalVolume / 1000)}k</Text>
+            <Text style={styles.quickStatLabel}>Total Volume</Text>
+          </View>
+        </View>
+
+        {/* Recent Activity */}
+        <View style={styles.section}>
+          <View style={styles.sectionHeader}>
+            <Text style={styles.sectionTitle}>Recent Activity</Text>
+            {results.length > 5 && (
+              <TouchableOpacity onPress={() => navigation.navigate('WorkoutHistory' as any, { results })}>
+                <Text style={styles.seeAllText}>See All</Text>
+              </TouchableOpacity>
+            )}
+          </View>
+
+          {recentResults.length > 0 ? (
+            recentResults.map((result) => {
+              const workoutTypeColor = getWorkoutTypeColor(result);
+              const workoutTypeIcon = getWorkoutTypeIcon(result);
+
+              return (
+                <TouchableOpacity
+                  key={result.id}
+                  style={styles.activityCard}
+                  onPress={() => navigation.navigate('WorkoutDetail' as any, { result })}
+                  activeOpacity={0.7}
+                >
+                  <View style={[styles.activityIcon, { backgroundColor: workoutTypeColor + '15' }]}>
+                    <Icon name={workoutTypeIcon} size={24} color={workoutTypeColor} />
+                  </View>
+
+                  <View style={styles.activityContent}>
+                    <Text style={styles.activityTitle} numberOfLines={1}>
+                      {result.sessionTitle || 'Workout'}
+                    </Text>
+                    <Text style={styles.activityDate}>{formatDate(result.date)}</Text>
+                  </View>
+
+                  <View style={styles.activityStats}>
+                    {result.totalDurationSeconds && (
+                      <View style={styles.activityStat}>
+                        <Icon name="schedule" size={14} color="#999" />
+                        <Text style={styles.activityStatText}>
+                          {Math.round(result.totalDurationSeconds / 60)}m
+                        </Text>
+                      </View>
+                    )}
+                    {result.totalVolumeLoad && (
+                      <View style={styles.activityStat}>
+                        <Icon name="fitness-center" size={14} color="#999" />
+                        <Text style={styles.activityStatText}>
+                          {Math.round(result.totalVolumeLoad)}kg
+                        </Text>
+                      </View>
+                    )}
+                  </View>
+
+                  <Icon name="chevron-right" size={20} color="#ccc" />
+                </TouchableOpacity>
+              );
+            })
+          ) : (
+            <View style={styles.emptyState}>
+              <Icon name="fitness-center" size={48} color="#ddd" />
+              <Text style={styles.emptyText}>No workouts yet</Text>
+              <Text style={styles.emptySubtext}>Start your first workout!</Text>
+            </View>
+          )}
+        </View>
+
+        {/* Insights Card */}
+        {results.length > 0 && (
+          <TouchableOpacity
+            style={styles.insightsCard}
+            onPress={() => navigation.navigate('StatsDetail' as any, { results })}
+          >
+            <View style={styles.insightsHeader}>
+              <Icon name="insights" size={24} color="#007AFF" />
+              <Text style={styles.insightsTitle}>View Detailed Stats</Text>
+            </View>
+            <Text style={styles.insightsSubtext}>
+              See your personal records, charts, and analytics
+            </Text>
+            <Icon name="arrow-forward" size={20} color="#007AFF" style={styles.insightsArrow} />
+          </TouchableOpacity>
+        )}
+      </ScrollView>
     </SafeAreaView>
   );
 };
@@ -318,261 +271,203 @@ const ProgressScreen = () => {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#f5f5f5',
-    paddingHorizontal: 16,
+    backgroundColor: '#fff',
   },
   centerContainer: {
     flex: 1,
     justifyContent: 'center',
     alignItems: 'center',
-    backgroundColor: '#f5f5f5',
+    backgroundColor: '#fff',
   },
   header: {
     flexDirection: 'row',
     justifyContent: 'space-between',
     alignItems: 'center',
-    marginBottom: 16,
-  },
-  title: {
-    fontSize: 28,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  addButton: {
-    backgroundColor: '#007AFF',
-    width: 44,
-    height: 44,
-    borderRadius: 22,
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  loadingText: {
-    marginTop: 16,
-    fontSize: 16,
-    color: '#666',
-  },
-  statsContainer: {
-    flexDirection: 'row',
-    marginBottom: 20,
-  },
-  statCard: {
-    flex: 1,
-    backgroundColor: 'white',
-    padding: 16,
-    marginHorizontal: 4,
-    borderRadius: 12,
-    alignItems: 'center',
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  statNumber: {
-    fontSize: 24,
-    fontWeight: 'bold',
-    color: '#007AFF',
-    marginBottom: 4,
-  },
-  statLabel: {
-    fontSize: 12,
-    color: '#666',
-    textAlign: 'center',
-  },
-  progressList: {
-    flex: 1,
-  },
-  progressCard: {
-    backgroundColor: 'white',
-    padding: 16,
-    marginBottom: 12,
-    borderRadius: 12,
-    shadowColor: '#000',
-    shadowOffset: {width: 0, height: 2},
-    shadowOpacity: 0.1,
-    shadowRadius: 4,
-    elevation: 3,
-  },
-  progressHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'flex-start',
-    marginBottom: 8,
-  },
-  progressInfo: {
-    flex: 1,
-  },
-  workoutName: {
-    fontSize: 18,
-    fontWeight: 'bold',
-    color: '#333',
-    marginBottom: 4,
-  },
-  completedDate: {
-    fontSize: 14,
-    color: '#666',
-  },
-  deleteButton: {
-    padding: 8,
-  },
-  progressDetails: {
-    flexDirection: 'row',
-    marginBottom: 8,
-  },
-  detailItem: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginRight: 16,
-  },
-  detailText: {
-    fontSize: 14,
-    color: '#666',
-    marginLeft: 4,
-  },
-  progressNotes: {
-    fontSize: 14,
-    color: '#888',
-    fontStyle: 'italic',
-    marginTop: 8,
-  },
-  emptyContainer: {
-    padding: 40,
-    alignItems: 'center',
-  },
-  emptyText: {
-    fontSize: 16,
-    color: '#666',
-    marginTop: 16,
-    marginBottom: 20,
-  },
-  recordFirstButton: {
-    backgroundColor: '#007AFF',
     paddingHorizontal: 20,
-    paddingVertical: 12,
-    borderRadius: 8,
-  },
-  recordFirstButtonText: {
-    color: 'white',
-    fontSize: 16,
-    fontWeight: '600',
-  },
-  modalOverlay: {
-    flex: 1,
-    backgroundColor: 'rgba(0, 0, 0, 0.5)',
-    justifyContent: 'center',
-    alignItems: 'center',
-  },
-  modalContent: {
-    backgroundColor: 'white',
-    borderRadius: 12,
-    padding: 20,
-    width: '90%',
-    maxHeight: '80%',
-  },
-  modalHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 20,
-  },
-  modalTitle: {
-    fontSize: 20,
-    fontWeight: 'bold',
-    color: '#333',
-  },
-  closeButton: {
-    padding: 4,
-  },
-  label: {
-    fontSize: 16,
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: 8,
-  },
-  pickerContainer: {
-    marginBottom: 16,
-  },
-  picker: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-  },
-  pickerText: {
-    fontSize: 16,
-    color: '#333',
-  },
-  workoutsList: {
-    fontSize: 14,
-    color: '#666',
-    marginBottom: 8,
-  },
-  workoutSelectList: {
-    maxHeight: 120,
-    marginBottom: 16,
-  },
-  workoutOption: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    padding: 12,
+    paddingVertical: 16,
     borderBottomWidth: 1,
     borderBottomColor: '#f0f0f0',
   },
-  selectedWorkoutOption: {
-    backgroundColor: '#f0f8ff',
+  headerTitle: {
+    fontSize: 34,
+    fontWeight: '700',
+    color: '#000',
+    letterSpacing: -0.5,
   },
-  workoutOptionText: {
-    fontSize: 16,
-    color: '#333',
+  statsButton: {
+    width: 44,
+    height: 44,
+    borderRadius: 22,
+    backgroundColor: '#f5f5f5',
+    alignItems: 'center',
+    justifyContent: 'center',
   },
-  selectedWorkoutOptionText: {
+  heroSection: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    paddingVertical: 32,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  heroStat: {
+    flex: 1,
+    alignItems: 'center',
+  },
+  heroNumber: {
+    fontSize: 48,
+    fontWeight: '800',
+    color: '#000',
+    letterSpacing: -1,
+  },
+  heroLabel: {
+    fontSize: 13,
+    color: '#666',
+    marginTop: 4,
+    fontWeight: '500',
+  },
+  heroDivider: {
+    width: 1,
+    height: 60,
+    backgroundColor: '#f0f0f0',
+    marginHorizontal: 20,
+  },
+  streakContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 8,
+  },
+  quickStatsSection: {
+    flexDirection: 'row',
+    paddingHorizontal: 20,
+    gap: 12,
+    marginBottom: 32,
+  },
+  quickStatCard: {
+    flex: 1,
+    backgroundColor: '#f8f8f8',
+    borderRadius: 16,
+    padding: 20,
+    alignItems: 'center',
+  },
+  quickStatNumber: {
+    fontSize: 28,
+    fontWeight: '700',
+    color: '#000',
+    marginBottom: 4,
+  },
+  quickStatLabel: {
+    fontSize: 12,
+    color: '#666',
+    fontWeight: '500',
+  },
+  section: {
+    paddingHorizontal: 20,
+    marginBottom: 32,
+  },
+  sectionHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: 16,
+  },
+  sectionTitle: {
+    fontSize: 20,
+    fontWeight: '700',
+    color: '#000',
+  },
+  seeAllText: {
+    fontSize: 15,
     color: '#007AFF',
     fontWeight: '600',
   },
-  input: {
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    padding: 12,
-    fontSize: 16,
-    marginBottom: 16,
-  },
-  textArea: {
-    height: 80,
-    textAlignVertical: 'top',
-  },
-  modalActions: {
+  activityCard: {
     flexDirection: 'row',
-    justifyContent: 'space-between',
-  },
-  cancelButton: {
-    flex: 1,
-    padding: 12,
-    borderWidth: 1,
-    borderColor: '#ddd',
-    borderRadius: 8,
-    marginRight: 8,
     alignItems: 'center',
+    backgroundColor: '#fafafa',
+    borderRadius: 16,
+    padding: 16,
+    marginBottom: 12,
   },
-  cancelButtonText: {
-    fontSize: 16,
-    color: '#666',
-  },
-  saveButton: {
-    flex: 1,
-    padding: 12,
-    backgroundColor: '#007AFF',
-    borderRadius: 8,
+  activityIcon: {
+    width: 48,
+    height: 48,
+    borderRadius: 24,
     alignItems: 'center',
+    justifyContent: 'center',
+    marginRight: 12,
   },
-  saveButtonText: {
+  activityContent: {
+    flex: 1,
+  },
+  activityTitle: {
     fontSize: 16,
-    color: 'white',
     fontWeight: '600',
+    color: '#000',
+    marginBottom: 4,
+  },
+  activityDate: {
+    fontSize: 13,
+    color: '#999',
+  },
+  activityStats: {
+    flexDirection: 'row',
+    gap: 12,
+    marginRight: 12,
+  },
+  activityStat: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+  },
+  activityStatText: {
+    fontSize: 13,
+    color: '#666',
+    fontWeight: '500',
+  },
+  emptyState: {
+    alignItems: 'center',
+    paddingVertical: 48,
+  },
+  emptyText: {
+    fontSize: 16,
+    fontWeight: '600',
+    color: '#999',
+    marginTop: 12,
+  },
+  emptySubtext: {
+    fontSize: 14,
+    color: '#ccc',
+    marginTop: 4,
+  },
+  insightsCard: {
+    marginHorizontal: 20,
+    marginBottom: 32,
+    backgroundColor: '#f0f7ff',
+    borderRadius: 20,
+    padding: 20,
+    position: 'relative',
+  },
+  insightsHeader: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+    marginBottom: 8,
+  },
+  insightsTitle: {
+    fontSize: 18,
+    fontWeight: '700',
+    color: '#007AFF',
+  },
+  insightsSubtext: {
+    fontSize: 14,
+    color: '#666',
+    lineHeight: 20,
+  },
+  insightsArrow: {
+    position: 'absolute',
+    right: 20,
+    top: '50%',
+    marginTop: -10,
   },
 });
 

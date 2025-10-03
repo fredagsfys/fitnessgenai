@@ -3,8 +3,10 @@ com\fitnesscoach\model\legacy\UserProgressSnapshot.class
 com\fitnesscoach\controller\UserController.class
 com\fitnesscoach\model\WorkoutSessionTemplate.class
 com\fitnesscoach\repository\legacy\WorkoutRepository.class
+com\fitnesscoach\dto\WorkoutResultDTO.class
 com\fitnesscoach\repository\WorkoutSessionRepository.class
 com\fitnesscoach\model\legacy\Workout.class
+com\fitnesscoach\controller\AdvancedWorkoutResultController.class
 com\fitnesscoach\repository\legacy\WorkoutResultRepository.class
 com\fitnesscoach\model\AdvancedPrescription.class
 com\fitnesscoach\service\AdvancedAnalyticsService$EMOMAnalytics.class
@@ -53,6 +55,7 @@ com\fitnesscoach\service\AdvancedAnalyticsService$AMRAPAnalytics.class
 com\fitnesscoach\model\BlockItem.class
 com\fitnesscoach\repository\ExerciseRepository.class
 com\fitnesscoach\dto\ProgramDTO.class
+com\fitnesscoach\dto\WorkoutResultDTO$SetResultSummary.class
 com\fitnesscoach\service\legacy\UserService.class
 com\fitnesscoach\model\Exercise.class
 com\fitnesscoach\repository\BlockResultRepository.class
@@ -74,6 +77,7 @@ com\fitnesscoach\exception\ResourceNotFoundException.class
 com\fitnesscoach\service\AdvancedWorkoutService.class
 com\fitnesscoach\model\MeasurementType.class
 com\fitnesscoach\service\AdvancedAnalyticsService$StrengthAnalytics.class
+com\fitnesscoach\service\AdvancedWorkoutResultService.class
 com\fitnesscoach\model\BlockResult.class
 com\fitnesscoach\repository\AdvancedSetResultRepository.class
 com\fitnesscoach\model\legacy\Workout$WorkoutStatus.class

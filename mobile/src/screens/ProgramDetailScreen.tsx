@@ -67,7 +67,12 @@ const ProgramDetailScreen = () => {
           <Icon name="arrow-back" size={24} color="#007AFF" />
         </TouchableOpacity>
         <Text style={styles.headerTitle}>Workout Details</Text>
-        <View style={styles.headerSpacer} />
+        <TouchableOpacity
+          style={styles.editButton}
+          onPress={() => navigation.navigate('WorkoutBuilder', {programId})}
+        >
+          <Icon name="edit" size={24} color="#007AFF" />
+        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.scrollView} contentContainerStyle={styles.content}>
@@ -246,6 +251,22 @@ const ProgramDetailScreen = () => {
                 ) : (
                   <Text style={styles.noBlocksText}>No blocks added to this session</Text>
                 )}
+
+                {/* Start Workout Button */}
+                <TouchableOpacity
+                  style={styles.startWorkoutButton}
+                  onPress={() => {
+                    // For now, use a hardcoded userId. In production, get from auth context
+                    const userId = '00000000-0000-0000-0000-000000000001';
+                    navigation.navigate('WorkoutExecution', {
+                      session,
+                      userId,
+                    });
+                  }}
+                >
+                  <Icon name="play-arrow" size={20} color="white" />
+                  <Text style={styles.startWorkoutButtonText}>Start Workout</Text>
+                </TouchableOpacity>
               </View>
             ))}
           </View>
@@ -294,8 +315,8 @@ const styles = StyleSheet.create({
     fontWeight: 'bold',
     color: '#1a1a1a',
   },
-  headerSpacer: {
-    width: 32,
+  editButton: {
+    padding: 4,
   },
   scrollView: {
     flex: 1,
@@ -496,6 +517,21 @@ const styles = StyleSheet.create({
     fontSize: 16,
     color: '#999',
     marginTop: 16,
+  },
+  startWorkoutButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'center',
+    backgroundColor: '#4CAF50',
+    padding: 12,
+    borderRadius: 8,
+    marginTop: 12,
+  },
+  startWorkoutButtonText: {
+    color: 'white',
+    fontSize: 16,
+    fontWeight: '600',
+    marginLeft: 8,
   },
 });
 

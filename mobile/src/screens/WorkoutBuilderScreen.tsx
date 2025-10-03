@@ -9,9 +9,11 @@ import {
   Alert,
   Modal,
   FlatList,
+  ActivityIndicator,
 } from 'react-native';
 import {SafeAreaView} from 'react-native-safe-area-context';
-import {useNavigation} from '@react-navigation/native';
+import {useNavigation, useRoute, RouteProp} from '@react-navigation/native';
+import {StackNavigationProp} from '@react-navigation/stack';
 import Icon from 'react-native-vector-icons/MaterialIcons';
 import {
   exerciseService,
@@ -25,6 +27,10 @@ import {
   Prescription,
   Program,
 } from '../services/api';
+import {RootStackParamList} from '../navigation/AppNavigator';
+
+type WorkoutBuilderRouteProp = RouteProp<RootStackParamList, 'WorkoutBuilder'>;
+type NavigationProp = StackNavigationProp<RootStackParamList>;
 
 interface BlockForm extends Omit<ExerciseBlock, 'id' | 'items'> {
   items: (BlockItem & {tempId: string})[];
@@ -336,25 +342,141 @@ const getWorkoutTypeConstraints = (workoutType: WorkoutType): WorkoutTypeConstra
       description: 'Flexibility and mobility work',
       guidance: ['Stretching and mobility drills', 'Hold positions 30-60s', 'Focus on range of motion'],
     },
+    CUSTOM: {
+      minExercises: 1,
+      maxExercises: null,
+      exerciseLabel: 'exercise',
+      description: 'Custom workout type',
+      guidance: ['Design your own workout structure', 'Add exercises as needed', 'Configure rest periods'],
+    },
   };
 
   return constraints[workoutType] || constraints.STRAIGHT_SETS;
 };
 
+// Workout type categories for selection modal
+const WORKOUT_TYPE_CATEGORIES = {
+  'Strength': ['STRAIGHT_SETS', 'PYRAMID', 'REVERSE_PYRAMID', 'WAVE_LOADING', 'MAX_EFFORT', 'DYNAMIC_EFFORT'] as WorkoutType[],
+  'Supersets': ['SUPERSETS', 'TRISETS', 'GIANT_SETS'] as WorkoutType[],
+  'Circuits': ['CIRCUIT', 'CIRCUIT_REPS', 'CIRCUIT_TIME'] as WorkoutType[],
+  'CrossFit': ['WOD', 'AMRAP', 'FOR_TIME', 'EMOM', 'EMOM_2', 'EMOM_3', 'DEATH_BY'] as WorkoutType[],
+  'HIIT': ['HIIT', 'TABATA', 'INTERVAL_TRAINING'] as WorkoutType[],
+  'Bodybuilding': ['DROP_SETS', 'REST_PAUSE', 'CLUSTER_SETS', 'MECHANICAL_DROP_SET', 'PRE_EXHAUSTION', 'POST_EXHAUSTION'] as WorkoutType[],
+  'Endurance': ['STEADY_STATE', 'LISS', 'TEMPO_RUNS', 'FARTLEK'] as WorkoutType[],
+  'Advanced': ['COMPLEX_TRAINING', 'CONTRAST_TRAINING', 'DENSITY_TRAINING', 'VOLUME_TRAINING', 'LADDER_SETS', 'LADDER_CLIMB'] as WorkoutType[],
+  'Recovery': ['ACTIVE_RECOVERY', 'MOBILITY_SESSION'] as WorkoutType[],
+};
+
+interface SessionForm {
+  title: string;
+  blocks: BlockForm[];
+}
+
 const WorkoutBuilderScreen = () => {
-  const navigation = useNavigation();
+  const navigation = useNavigation<NavigationProp>();
+  const route = useRoute<WorkoutBuilderRouteProp>();
+  const {programId} = route.params || {};
+
   const [workoutName, setWorkoutName] = useState('');
+  const [totalWeeks, setTotalWeeks] = useState('4');
+  const [sessions, setSessions] = useState<SessionForm[]>([
+    {title: 'Session 1', blocks: []},
+  ]);
+  const [currentSessionIndex, setCurrentSessionIndex] = useState(0);
   const [blocks, setBlocks] = useState<BlockForm[]>([]);
   const [selectedBlockIndex, setSelectedBlockIndex] = useState<number | null>(null);
   const [exerciseModalVisible, setExerciseModalVisible] = useState(false);
   const [blockConfigModalVisible, setBlockConfigModalVisible] = useState(false);
   const [workoutTypeModalVisible, setWorkoutTypeModalVisible] = useState(false);
+  const [sessionModalVisible, setSessionModalVisible] = useState(false);
   const [allExercises, setAllExercises] = useState<Exercise[]>([]);
   const [searchQuery, setSearchQuery] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [isEditing, setIsEditing] = useState(false);
 
   useEffect(() => {
     loadExercises();
-  }, []);
+    if (programId) {
+      loadProgram();
+    }
+  }, [programId]);
+
+  const loadProgram = async () => {
+    if (!programId) return;
+
+    try {
+      setLoading(true);
+      const program = await programService.getProgramById(programId);
+
+      setWorkoutName(program.title);
+      setTotalWeeks(program.totalWeeks.toString());
+      setIsEditing(true);
+
+      // Convert program sessions
+      if (program.sessions && program.sessions.length > 0) {
+        const loadedSessions: SessionForm[] = await Promise.all(
+          program.sessions.map(async (session) => {
+            const loadedBlocks: BlockForm[] = [];
+
+            if (session.blocks) {
+              for (const block of session.blocks) {
+                const items: (BlockItem & {tempId: string})[] = [];
+
+                if (block.items) {
+                  for (const item of block.items) {
+                    const exercise = await exerciseService.getExerciseById(item.exerciseId || '');
+                    items.push({
+                      tempId: `${Date.now()}-${Math.random()}`,
+                      orderIndex: item.orderIndex,
+                      exercise: exercise,
+                      prescription: item.prescription || {
+                        sets: 3,
+                        targetReps: 10,
+                        restSeconds: 60,
+                        weightUnit: 'KG',
+                      },
+                    });
+                  }
+                }
+
+                loadedBlocks.push({
+                  label: block.label,
+                  orderIndex: block.orderIndex,
+                  blockType: block.blockType,
+                  workoutType: block.workoutType,
+                  restBetweenItemsSeconds: block.restBetweenItemsSeconds,
+                  restAfterBlockSeconds: block.restAfterBlockSeconds,
+                  totalRounds: block.totalRounds,
+                  amrapDurationSeconds: block.amrapDurationSeconds,
+                  intervalSeconds: block.intervalSeconds,
+                  workPhaseSeconds: block.workPhaseSeconds,
+                  restPhaseSeconds: block.restPhaseSeconds,
+                  blockInstructions: block.blockInstructions,
+                  notes: block.notes,
+                  items: items,
+                });
+              }
+            }
+
+            return {
+              title: session.title,
+              blocks: loadedBlocks,
+            };
+          })
+        );
+
+        setSessions(loadedSessions);
+        setCurrentSessionIndex(0);
+        setBlocks(loadedSessions[0]?.blocks || []);
+      }
+    } catch (error) {
+      console.error('Error loading program:', error);
+      Alert.alert('Error', 'Failed to load workout for editing');
+      navigation.goBack();
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const loadExercises = async () => {
     try {
@@ -375,7 +497,13 @@ const WorkoutBuilderScreen = () => {
       restBetweenItemsSeconds: 60,
       restAfterBlockSeconds: 120,
     };
-    setBlocks([...blocks, newBlock]);
+    const updatedBlocks = [...blocks, newBlock];
+    setBlocks(updatedBlocks);
+
+    // Update session with new blocks
+    const newSessions = [...sessions];
+    newSessions[currentSessionIndex].blocks = updatedBlocks;
+    setSessions(newSessions);
   };
 
   const addExerciseToBlock = (blockIndex: number, exercise: Exercise) => {
@@ -405,6 +533,11 @@ const WorkoutBuilderScreen = () => {
     };
     newBlocks[blockIndex].items.push(newItem);
     setBlocks(newBlocks);
+
+    // Update session
+    const newSessions = [...sessions];
+    newSessions[currentSessionIndex].blocks = newBlocks;
+    setSessions(newSessions);
   };
 
   const updatePrescription = (
@@ -418,6 +551,11 @@ const WorkoutBuilderScreen = () => {
       ...prescription,
     };
     setBlocks(newBlocks);
+
+    // Update session
+    const newSessions = [...sessions];
+    newSessions[currentSessionIndex].blocks = newBlocks;
+    setSessions(newSessions);
   };
 
   const updateBlockConfig = (
@@ -427,6 +565,11 @@ const WorkoutBuilderScreen = () => {
     const newBlocks = [...blocks];
     newBlocks[blockIndex] = {...newBlocks[blockIndex], ...config};
     setBlocks(newBlocks);
+
+    // Update session
+    const newSessions = [...sessions];
+    newSessions[currentSessionIndex].blocks = newBlocks;
+    setSessions(newSessions);
   };
 
   const removeBlock = (blockIndex: number) => {
@@ -435,7 +578,15 @@ const WorkoutBuilderScreen = () => {
       {
         text: 'Remove',
         style: 'destructive',
-        onPress: () => setBlocks(blocks.filter((_, i) => i !== blockIndex)),
+        onPress: () => {
+          const updatedBlocks = blocks.filter((_, i) => i !== blockIndex);
+          setBlocks(updatedBlocks);
+
+          // Update session
+          const newSessions = [...sessions];
+          newSessions[currentSessionIndex].blocks = updatedBlocks;
+          setSessions(newSessions);
+        },
       },
     ]);
   };
@@ -446,6 +597,11 @@ const WorkoutBuilderScreen = () => {
       (_, i) => i !== itemIndex
     );
     setBlocks(newBlocks);
+
+    // Update session
+    const newSessions = [...sessions];
+    newSessions[currentSessionIndex].blocks = newBlocks;
+    setSessions(newSessions);
   };
 
   const openExerciseSelector = (blockIndex: number) => {
@@ -459,24 +615,90 @@ const WorkoutBuilderScreen = () => {
     setBlockConfigModalVisible(true);
   };
 
+  const addSession = () => {
+    // Save current session's blocks first
+    const updatedSessions = [...sessions];
+    updatedSessions[currentSessionIndex].blocks = blocks;
+
+    // Add new session
+    const newSessions = [...updatedSessions, {
+      title: `Session ${updatedSessions.length + 1}`,
+      blocks: [],
+    }];
+    setSessions(newSessions);
+    setCurrentSessionIndex(newSessions.length - 1);
+    setBlocks([]);
+  };
+
+  const switchSession = (index: number) => {
+    // Save current session's blocks
+    const updatedSessions = [...sessions];
+    updatedSessions[currentSessionIndex].blocks = blocks;
+    setSessions(updatedSessions);
+
+    // Switch to new session
+    setCurrentSessionIndex(index);
+    setBlocks(updatedSessions[index].blocks);
+  };
+
+  const deleteSession = (index: number) => {
+    if (sessions.length <= 1) {
+      Alert.alert('Error', 'Program must have at least one session');
+      return;
+    }
+
+    Alert.alert(
+      'Delete Session',
+      `Delete "${sessions[index].title}"?`,
+      [
+        {text: 'Cancel', style: 'cancel'},
+        {
+          text: 'Delete',
+          style: 'destructive',
+          onPress: () => {
+            const newSessions = sessions.filter((_, i) => i !== index);
+            setSessions(newSessions);
+            setCurrentSessionIndex(Math.max(0, Math.min(currentSessionIndex, newSessions.length - 1)));
+            setBlocks(newSessions[Math.max(0, Math.min(currentSessionIndex, newSessions.length - 1))]?.blocks || []);
+          },
+        },
+      ]
+    );
+  };
+
+  const renameSession = (index: number, newTitle: string) => {
+    const newSessions = [...sessions];
+    newSessions[index].title = newTitle;
+    setSessions(newSessions);
+  };
+
   const handleSave = async () => {
     if (!workoutName.trim()) {
       Alert.alert('Error', 'Please enter a workout name');
       return;
     }
 
-    if (blocks.length === 0) {
-      Alert.alert('Error', 'Please add at least one block');
+    const weeksNum = parseInt(totalWeeks) || 1;
+    if (weeksNum < 1 || weeksNum > 52) {
+      Alert.alert('Error', 'Total weeks must be between 1 and 52');
+      return;
+    }
+
+    // Sync current session blocks before saving
+    const finalSessions = [...sessions];
+    finalSessions[currentSessionIndex].blocks = blocks;
+
+    if (finalSessions.length === 0 || finalSessions.every(s => s.blocks.length === 0)) {
+      Alert.alert('Error', 'Please add at least one block to a session');
       return;
     }
 
     try {
-      // Convert blocks to API format
-      const sessions = [
-        {
-          title: workoutName,
-          orderIndex: 0,
-          blocks: blocks.map(block => ({
+      // Convert sessions to API format
+      const apiSessions = finalSessions.map((session, index) => ({
+        title: session.title,
+        orderIndex: index,
+        blocks: session.blocks.map(block => ({
             label: block.label,
             orderIndex: block.orderIndex,
             blockType: block.blockType,
@@ -492,7 +714,7 @@ const WorkoutBuilderScreen = () => {
             notes: block.notes,
             items: block.items.map(item => ({
               orderIndex: item.orderIndex,
-              exerciseId: item.exercise.id,
+              exerciseId: item.exercise?.id || '',
               prescription: {
                 sets: item.prescription.sets,
                 minReps: item.prescription.minReps,
@@ -509,17 +731,21 @@ const WorkoutBuilderScreen = () => {
               },
             })),
           })),
-        },
-      ];
+        }));
 
       const programData: Omit<Program, 'id'> = {
         title: workoutName,
-        totalWeeks: 1,
-        sessions,
+        totalWeeks: weeksNum,
+        sessions: apiSessions,
       };
 
-      await programService.createProgram(programData);
-      Alert.alert('Success', 'Workout saved successfully!');
+      if (isEditing && programId) {
+        await programService.updateProgram(programId, programData);
+        Alert.alert('Success', 'Workout updated successfully!');
+      } else {
+        await programService.createProgram(programData);
+        Alert.alert('Success', 'Workout created successfully!');
+      }
       navigation.goBack();
     } catch (error) {
       console.error('Error saving workout:', error);
@@ -531,30 +757,112 @@ const WorkoutBuilderScreen = () => {
     ex.name.toLowerCase().includes(searchQuery.toLowerCase())
   );
 
+  if (loading) {
+    return (
+      <SafeAreaView style={styles.container} edges={['top']}>
+        <View style={styles.loadingContainer}>
+          <ActivityIndicator size="large" color="#007AFF" />
+          <Text style={styles.loadingText}>Loading workout...</Text>
+        </View>
+      </SafeAreaView>
+    );
+  }
+
   return (
     <SafeAreaView style={styles.container} edges={['top']}>
       <View style={styles.header}>
         <TouchableOpacity onPress={() => navigation.goBack()}>
           <Icon name="arrow-back" size={24} color="#1a1a1a" />
         </TouchableOpacity>
-        <Text style={styles.headerTitle}>Workout Builder</Text>
+        <Text style={styles.headerTitle}>
+          {isEditing ? 'Edit Workout' : 'Workout Builder'}
+        </Text>
         <TouchableOpacity style={styles.saveButton} onPress={handleSave}>
-          <Text style={styles.saveButtonText}>Save</Text>
+          <Text style={styles.saveButtonText}>{isEditing ? 'Update' : 'Save'}</Text>
         </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content}>
+        {/* Program Configuration */}
         <View style={styles.nameSection}>
-          <Text style={styles.sectionLabel}>Workout Name</Text>
+          <Text style={styles.sectionLabel}>Program Name</Text>
           <TextInput
             style={styles.nameInput}
-            placeholder="e.g., Upper Body Strength"
+            placeholder="e.g., 12-Week Strength Builder"
             value={workoutName}
             onChangeText={setWorkoutName}
             placeholderTextColor="#999"
           />
+
+          <Text style={[styles.sectionLabel, {marginTop: 16}]}>Program Duration</Text>
+          <View style={styles.weeksInputContainer}>
+            <TextInput
+              style={styles.weeksInput}
+              placeholder="4"
+              value={totalWeeks}
+              onChangeText={setTotalWeeks}
+              keyboardType="numeric"
+              placeholderTextColor="#999"
+            />
+            <Text style={styles.weeksLabel}>weeks</Text>
+          </View>
         </View>
 
+        {/* Session Tabs */}
+        <View style={styles.sessionsSection}>
+          <View style={styles.sessionTabsHeader}>
+            <Text style={styles.sectionLabel}>Sessions ({sessions.length})</Text>
+            <TouchableOpacity style={styles.addSessionButton} onPress={addSession}>
+              <Icon name="add" size={18} color="#007AFF" />
+              <Text style={styles.addSessionText}>Add Session</Text>
+            </TouchableOpacity>
+          </View>
+
+          <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.sessionTabs}>
+            {sessions.map((session, index) => (
+              <TouchableOpacity
+                key={index}
+                style={[
+                  styles.sessionTab,
+                  currentSessionIndex === index && styles.sessionTabActive,
+                ]}
+                onPress={() => switchSession(index)}
+                onLongPress={() => {
+                  Alert.prompt(
+                    'Rename Session',
+                    'Enter new session name:',
+                    [
+                      {text: 'Cancel', style: 'cancel'},
+                      {
+                        text: 'Rename',
+                        onPress: (text?: string) => text && renameSession(index, text),
+                      },
+                    ],
+                    'plain-text',
+                    session.title
+                  );
+                }}
+              >
+                <Text style={[
+                  styles.sessionTabText,
+                  currentSessionIndex === index && styles.sessionTabTextActive,
+                ]}>
+                  {session.title}
+                </Text>
+                {sessions.length > 1 && (
+                  <TouchableOpacity
+                    style={styles.deleteSessionButton}
+                    onPress={() => deleteSession(index)}
+                  >
+                    <Icon name="close" size={16} color={currentSessionIndex === index ? '#007AFF' : '#666'} />
+                  </TouchableOpacity>
+                )}
+              </TouchableOpacity>
+            ))}
+          </ScrollView>
+        </View>
+
+        {/* Blocks Section */}
         <View style={styles.blocksSection}>
           <View style={styles.blocksSectionHeader}>
             <Text style={styles.sectionLabel}>Blocks ({blocks.length})</Text>
@@ -623,7 +931,7 @@ const WorkoutBuilderScreen = () => {
                   {block.items.map((item, itemIndex) => (
                     <View key={item.tempId} style={styles.exerciseItem}>
                       <View style={styles.exerciseItemHeader}>
-                        <Text style={styles.exerciseName}>{item.exercise.name}</Text>
+                        <Text style={styles.exerciseName}>{item.exercise?.name || 'Unknown Exercise'}</Text>
                         <TouchableOpacity
                           onPress={() => removeExercise(blockIndex, itemIndex)}
                         >
@@ -726,41 +1034,50 @@ const WorkoutBuilderScreen = () => {
         animationType="slide"
         onRequestClose={() => setWorkoutTypeModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Select Block Type</Text>
-              <TouchableOpacity onPress={() => setWorkoutTypeModalVisible(false)}>
-                <Icon name="close" size={24} color="#666" />
-              </TouchableOpacity>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setWorkoutTypeModalVisible(false)}
+        >
+          <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Select Block Type</Text>
+                <TouchableOpacity onPress={() => setWorkoutTypeModalVisible(false)}>
+                  <Icon name="close" size={24} color="#666" />
+                </TouchableOpacity>
+              </View>
+              <ScrollView showsVerticalScrollIndicator={false}>
+                {Object.entries(WORKOUT_TYPE_CATEGORIES).map(([category, types]) => (
+                  <View key={category}>
+                    <Text style={styles.categoryHeader}>{category}</Text>
+                    {types.map(type => {
+                      const info = getWorkoutTypeInfo(type);
+                      return (
+                        <TouchableOpacity
+                          key={type}
+                          style={styles.typeOption}
+                          onPress={() => {
+                            addBlock(type);
+                            setWorkoutTypeModalVisible(false);
+                          }}
+                        >
+                          <View style={[styles.typeIcon, {backgroundColor: info.color}]}>
+                            <Icon name={info.icon} size={24} color="white" />
+                          </View>
+                          <View style={styles.typeInfo}>
+                            <Text style={styles.typeName}>{info.displayName}</Text>
+                            <Text style={styles.typeDesc}>{info.description}</Text>
+                          </View>
+                        </TouchableOpacity>
+                      );
+                    })}
+                  </View>
+                ))}
+              </ScrollView>
             </View>
-            <ScrollView>
-              {(['STRAIGHT_SETS', 'SUPERSETS', 'CIRCUIT', 'AMRAP', 'EMOM', 'TABATA', 'PYRAMID'] as WorkoutType[]).map(
-                type => {
-                  const info = getWorkoutTypeInfo(type);
-                  return (
-                    <TouchableOpacity
-                      key={type}
-                      style={styles.typeOption}
-                      onPress={() => {
-                        addBlock(type);
-                        setWorkoutTypeModalVisible(false);
-                      }}
-                    >
-                      <View style={[styles.typeIcon, {backgroundColor: info.color}]}>
-                        <Icon name={info.icon} size={24} color="white" />
-                      </View>
-                      <View style={styles.typeInfo}>
-                        <Text style={styles.typeName}>{info.displayName}</Text>
-                        <Text style={styles.typeDesc}>{info.description}</Text>
-                      </View>
-                    </TouchableOpacity>
-                  );
-                }
-              )}
-            </ScrollView>
-          </View>
-        </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
 
       {/* Exercise Selection Modal */}
@@ -770,46 +1087,53 @@ const WorkoutBuilderScreen = () => {
         animationType="slide"
         onRequestClose={() => setExerciseModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Add Exercise</Text>
-              <TouchableOpacity onPress={() => setExerciseModalVisible(false)}>
-                <Icon name="close" size={24} color="#666" />
-              </TouchableOpacity>
-            </View>
-            <TextInput
-              style={styles.searchInput}
-              placeholder="Search exercises..."
-              value={searchQuery}
-              onChangeText={setSearchQuery}
-              placeholderTextColor="#999"
-            />
-            <FlatList
-              data={filteredExercises}
-              keyExtractor={item => item.id}
-              renderItem={({item}) => (
-                <TouchableOpacity
-                  style={styles.exerciseOption}
-                  onPress={() => {
-                    if (selectedBlockIndex !== null) {
-                      addExerciseToBlock(selectedBlockIndex, item);
-                      setExerciseModalVisible(false);
-                    }
-                  }}
-                >
-                  <Icon name="fitness-center" size={24} color="#007AFF" />
-                  <View style={styles.exerciseOptionInfo}>
-                    <Text style={styles.exerciseOptionName}>{item.name}</Text>
-                    <Text style={styles.exerciseOptionMuscle}>
-                      {item.primaryMuscle}
-                    </Text>
-                  </View>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setExerciseModalVisible(false)}
+        >
+          <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Add Exercise</Text>
+                <TouchableOpacity onPress={() => setExerciseModalVisible(false)}>
+                  <Icon name="close" size={24} color="#666" />
                 </TouchableOpacity>
-              )}
-            />
-          </View>
-        </View>
+              </View>
+              <TextInput
+                style={styles.searchInput}
+                placeholder="Search exercises..."
+                value={searchQuery}
+                onChangeText={setSearchQuery}
+                placeholderTextColor="#999"
+              />
+              <FlatList
+                data={filteredExercises}
+                keyExtractor={item => item.id}
+                showsVerticalScrollIndicator={false}
+                renderItem={({item}) => (
+                  <TouchableOpacity
+                    style={styles.exerciseOption}
+                    onPress={() => {
+                      if (selectedBlockIndex !== null) {
+                        addExerciseToBlock(selectedBlockIndex, item);
+                        setExerciseModalVisible(false);
+                      }
+                    }}
+                  >
+                    <Icon name="fitness-center" size={24} color="#007AFF" />
+                    <View style={styles.exerciseOptionInfo}>
+                      <Text style={styles.exerciseOptionName}>{item.name}</Text>
+                      <Text style={styles.exerciseOptionMuscle}>
+                        {item.primaryMuscle}
+                      </Text>
+                    </View>
+                  </TouchableOpacity>
+                )}
+              />
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
 
       {/* Block Config Modal */}
@@ -819,16 +1143,21 @@ const WorkoutBuilderScreen = () => {
         animationType="slide"
         onRequestClose={() => setBlockConfigModalVisible(false)}
       >
-        <View style={styles.modalOverlay}>
-          <View style={styles.modalContent}>
-            <View style={styles.modalHeader}>
-              <Text style={styles.modalTitle}>Block Settings</Text>
-              <TouchableOpacity onPress={() => setBlockConfigModalVisible(false)}>
-                <Icon name="close" size={24} color="#666" />
-              </TouchableOpacity>
-            </View>
-            {selectedBlockIndex !== null && (
-              <ScrollView>
+        <TouchableOpacity
+          style={styles.modalOverlay}
+          activeOpacity={1}
+          onPress={() => setBlockConfigModalVisible(false)}
+        >
+          <TouchableOpacity activeOpacity={1} onPress={(e) => e.stopPropagation()}>
+            <View style={styles.modalContent}>
+              <View style={styles.modalHeader}>
+                <Text style={styles.modalTitle}>Block Settings</Text>
+                <TouchableOpacity onPress={() => setBlockConfigModalVisible(false)}>
+                  <Icon name="close" size={24} color="#666" />
+                </TouchableOpacity>
+              </View>
+              {selectedBlockIndex !== null && (
+                <ScrollView showsVerticalScrollIndicator={false}>
                 <Text style={styles.configLabel}>Block Name</Text>
                 <TextInput
                   style={styles.configInput}
@@ -883,8 +1212,9 @@ const WorkoutBuilderScreen = () => {
                 )}
               </ScrollView>
             )}
-          </View>
-        </View>
+            </View>
+          </TouchableOpacity>
+        </TouchableOpacity>
       </Modal>
     </SafeAreaView>
   );
@@ -894,6 +1224,16 @@ const styles = StyleSheet.create({
   container: {
     flex: 1,
     backgroundColor: '#f8f9fa',
+  },
+  loadingContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+  },
+  loadingText: {
+    marginTop: 16,
+    fontSize: 16,
+    color: '#666',
   },
   header: {
     flexDirection: 'row',
@@ -944,6 +1284,80 @@ const styles = StyleSheet.create({
     padding: 14,
     fontSize: 16,
     backgroundColor: '#F8F9FA',
+  },
+  weeksInputContainer: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 12,
+  },
+  weeksInput: {
+    borderWidth: 1.5,
+    borderColor: '#E0E0E0',
+    borderRadius: 12,
+    padding: 14,
+    fontSize: 16,
+    backgroundColor: '#F8F9FA',
+    width: 80,
+    textAlign: 'center',
+  },
+  weeksLabel: {
+    fontSize: 16,
+    color: '#666',
+    fontWeight: '600',
+  },
+  sessionsSection: {
+    backgroundColor: 'white',
+    paddingTop: 16,
+    paddingBottom: 8,
+    marginBottom: 8,
+  },
+  sessionTabsHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    paddingHorizontal: 16,
+    marginBottom: 12,
+  },
+  addSessionButton: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    gap: 4,
+    backgroundColor: '#F0F8FF',
+    paddingHorizontal: 12,
+    paddingVertical: 6,
+    borderRadius: 8,
+  },
+  addSessionText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#007AFF',
+  },
+  sessionTabs: {
+    paddingHorizontal: 16,
+  },
+  sessionTab: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    backgroundColor: '#F8F9FA',
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    borderRadius: 20,
+    marginRight: 8,
+    gap: 8,
+  },
+  sessionTabActive: {
+    backgroundColor: '#007AFF',
+  },
+  sessionTabText: {
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#666',
+  },
+  sessionTabTextActive: {
+    color: 'white',
+  },
+  deleteSessionButton: {
+    padding: 2,
   },
   blocksSection: {
     padding: 16,
@@ -1155,6 +1569,16 @@ const styles = StyleSheet.create({
     fontSize: 16,
     marginBottom: 16,
     backgroundColor: '#F8F9FA',
+  },
+  categoryHeader: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1a1a1a',
+    textTransform: 'uppercase',
+    letterSpacing: 0.5,
+    paddingHorizontal: 4,
+    paddingTop: 16,
+    paddingBottom: 8,
   },
   typeOption: {
     flexDirection: 'row',

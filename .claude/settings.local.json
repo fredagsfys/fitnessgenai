@@ -23,7 +23,8 @@
       "WebSearch",
       "WebFetch(domain:stormotion.io)",
       "WebFetch(domain:www.fusioncharts.com)",
-      "Bash(./mvnw clean compile)"
+      "Bash(./mvnw clean compile)",
+      "WebFetch(domain:www.hevyapp.com)"
     ],
     "deny": [],
     "ask": []

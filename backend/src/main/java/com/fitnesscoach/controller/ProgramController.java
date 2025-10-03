@@ -180,15 +180,106 @@ public class ProgramController {
             @PathVariable UUID id,
             @Valid @RequestBody ProgramDTO programDTO) {
         try {
-            Program programDetails = new Program(programDTO.title, programDTO.totalWeeks);
+            // Fetch existing program
+            Program existingProgram = programService.findById(id)
+                .orElseThrow(() -> new RuntimeException("Program not found"));
+
+            // Update basic fields
+            existingProgram.setTitle(programDTO.title);
+            existingProgram.setTotalWeeks(programDTO.totalWeeks);
             if (programDTO.startDate != null) {
-                programDetails.setStartDate(LocalDate.parse(programDTO.startDate));
+                existingProgram.setStartDate(LocalDate.parse(programDTO.startDate));
             }
             if (programDTO.endDate != null) {
-                programDetails.setEndDate(LocalDate.parse(programDTO.endDate));
+                existingProgram.setEndDate(LocalDate.parse(programDTO.endDate));
             }
 
-            Program updatedProgram = programService.updateProgram(id, programDetails);
+            // Clear existing sessions (cascade will handle blocks and items)
+            existingProgram.getSessions().clear();
+
+            // Add new sessions from DTO (same logic as create)
+            if (programDTO.sessions != null && !programDTO.sessions.isEmpty()) {
+                for (SessionDTO sessionDTO : programDTO.sessions) {
+                    WorkoutSessionTemplate session = new WorkoutSessionTemplate(
+                        sessionDTO.title,
+                        existingProgram,
+                        sessionDTO.orderIndex
+                    );
+
+                    if (sessionDTO.blocks != null) {
+                        for (var blockDTO : sessionDTO.blocks) {
+                            ExerciseBlock block = new ExerciseBlock(
+                                blockDTO.label,
+                                session,
+                                blockDTO.orderIndex
+                            );
+
+                            if (blockDTO.blockType != null) {
+                                block.setBlockType(ExerciseBlock.BlockType.valueOf(blockDTO.blockType));
+                            }
+                            if (blockDTO.workoutType != null) {
+                                block.setWorkoutType(com.fitnesscoach.model.WorkoutType.valueOf(blockDTO.workoutType));
+                            }
+                            if (blockDTO.restBetweenItemsSeconds != null) {
+                                block.setRestBetweenItemsSeconds(blockDTO.restBetweenItemsSeconds);
+                            }
+                            if (blockDTO.restAfterBlockSeconds != null) {
+                                block.setRestAfterBlockSeconds(blockDTO.restAfterBlockSeconds);
+                            }
+                            if (blockDTO.amrapDurationSeconds != null) {
+                                block.setAmrapDurationSeconds(blockDTO.amrapDurationSeconds);
+                                block.setIsAMRAP(true);
+                            }
+                            if (blockDTO.totalRounds != null) {
+                                block.setTotalRounds(blockDTO.totalRounds);
+                            }
+                            if (blockDTO.intervalSeconds != null) {
+                                block.setIntervalSeconds(blockDTO.intervalSeconds);
+                            }
+
+                            if (blockDTO.items != null) {
+                                for (var itemDTO : blockDTO.items) {
+                                    Exercise exercise = exerciseRepository.findById(UUID.fromString(itemDTO.exerciseId))
+                                        .orElseThrow(() -> new RuntimeException("Exercise not found: " + itemDTO.exerciseId));
+
+                                    BlockItem item = new BlockItem();
+                                    item.setBlock(block);
+                                    item.setExercise(exercise);
+                                    item.setOrderIndex(itemDTO.orderIndex);
+
+                                    if (itemDTO.prescription != null) {
+                                        var prescDTO = itemDTO.prescription;
+                                        com.fitnesscoach.model.AdvancedPrescription advPresc = new com.fitnesscoach.model.AdvancedPrescription();
+
+                                        if (prescDTO.sets != null) advPresc.setSets(prescDTO.sets);
+                                        if (prescDTO.minReps != null) advPresc.setRepRangeMin(prescDTO.minReps);
+                                        if (prescDTO.maxReps != null) advPresc.setRepRangeMax(prescDTO.maxReps);
+                                        if (prescDTO.targetReps != null) advPresc.setTargetReps(prescDTO.targetReps);
+                                        if (prescDTO.weight != null) advPresc.setWeight(prescDTO.weight);
+                                        if (prescDTO.weightUnit != null) advPresc.setWeightUnit(prescDTO.weightUnit);
+                                        if (prescDTO.tempo != null) advPresc.setTempo(prescDTO.tempo);
+                                        if (prescDTO.restSeconds != null) advPresc.setRestTimeSeconds(prescDTO.restSeconds);
+                                        if (prescDTO.rpe != null) advPresc.setTargetRPE(prescDTO.rpe);
+                                        if (prescDTO.rir != null) advPresc.setRepsInReserve(prescDTO.rir);
+                                        if (prescDTO.percentage1RM != null) advPresc.setPercentage1RM(prescDTO.percentage1RM);
+                                        if (prescDTO.notes != null) advPresc.setCoachNotes(prescDTO.notes);
+
+                                        item.setAdvancedPrescription(advPresc);
+                                    }
+
+                                    block.getItems().add(item);
+                                }
+                            }
+
+                            session.getBlocks().add(block);
+                        }
+                    }
+
+                    existingProgram.getSessions().add(session);
+                }
+            }
+
+            Program updatedProgram = programService.updateProgram(id, existingProgram);
             return ResponseEntity.ok(DTOMapper.toDTO(updatedProgram));
         } catch (RuntimeException e) {
             return ResponseEntity.notFound().build();

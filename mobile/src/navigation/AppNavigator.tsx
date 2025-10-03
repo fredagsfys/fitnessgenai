@@ -9,17 +9,23 @@ import ExercisesScreen from '../screens/ExercisesScreen';
 import WorkoutsScreen from '../screens/WorkoutsScreen';
 import ProfileScreen from '../screens/ProfileScreen';
 import ProgressScreen from '../screens/ProgressScreen';
-import WorkoutDetailScreen from '../screens/WorkoutDetailScreen';
 import ExerciseDetailScreen from '../screens/ExerciseDetailScreen';
 import WorkoutBuilderScreen from '../screens/WorkoutBuilderScreen';
 import ProgramDetailScreen from '../screens/ProgramDetailScreen';
+import WorkoutExecutionScreen from '../screens/WorkoutExecutionScreen';
+import ProgressWorkoutDetailScreen from '../screens/ProgressWorkoutDetailScreen';
+import StatsDetailScreen from '../screens/StatsDetailScreen';
+import {WorkoutSession, AdvancedWorkoutResult} from '../services/api';
 
 export type RootStackParamList = {
   MainTabs: undefined;
   ExerciseDetail: {exerciseId: number};
-  WorkoutDetail: {workoutId: number};
-  WorkoutBuilder: undefined;
+  WorkoutDetail: {workoutId?: number; result?: AdvancedWorkoutResult};
+  WorkoutBuilder: {programId?: string};
   ProgramDetail: {programId: string};
+  WorkoutExecution: {session: WorkoutSession; userId: string};
+  StatsDetail: {results: AdvancedWorkoutResult[]};
+  WorkoutHistory: {results: AdvancedWorkoutResult[]};
 };
 
 export type TabParamList = {
@@ -114,12 +120,7 @@ const AppNavigator = () => {
         <Stack.Screen
           name="ExerciseDetail"
           component={ExerciseDetailScreen}
-          options={{title: 'Exercise Details'}}
-        />
-        <Stack.Screen
-          name="WorkoutDetail"
-          component={WorkoutDetailScreen}
-          options={{title: 'Workout Details'}}
+          options={{headerShown: false}}
         />
         <Stack.Screen
           name="WorkoutBuilder"
@@ -129,6 +130,21 @@ const AppNavigator = () => {
         <Stack.Screen
           name="ProgramDetail"
           component={ProgramDetailScreen}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen
+          name="WorkoutExecution"
+          component={WorkoutExecutionScreen}
+          options={{title: 'Workout', headerShown: false}}
+        />
+        <Stack.Screen
+          name="WorkoutDetail"
+          component={ProgressWorkoutDetailScreen}
+          options={{headerShown: false}}
+        />
+        <Stack.Screen
+          name="StatsDetail"
+          component={StatsDetailScreen}
           options={{headerShown: false}}
         />
       </Stack.Navigator>

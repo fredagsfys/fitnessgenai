@@ -6,6 +6,7 @@ C:\Users\devha\Documents\Github\fitnessgenai\backend\src\main\java\com\fitnessco
 C:\Users\devha\Documents\Github\fitnessgenai\backend\src\main\java\com\fitnesscoach\controller\WorkoutResultController.java
 C:\Users\devha\Documents\Github\fitnessgenai\backend\src\main\java\com\fitnesscoach\model\WorkoutSessionTemplate.java
 C:\Users\devha\Documents\Github\fitnessgenai\backend\src\main\java\com\fitnesscoach\config\DataSeeder.java
+C:\Users\devha\Documents\Github\fitnessgenai\backend\src\main\java\com\fitnesscoach\controller\AdvancedWorkoutResultController.java
 C:\Users\devha\Documents\Github\fitnessgenai\backend\src\main\java\com\fitnesscoach\repository\legacy\UserProgressSnapshotRepository.java
 C:\Users\devha\Documents\Github\fitnessgenai\backend\src\main\java\com\fitnesscoach\service\legacy\WorkoutService.java
 C:\Users\devha\Documents\Github\fitnessgenai\backend\src\main\java\com\fitnesscoach\service\WorkoutSessionService.java
@@ -47,6 +48,7 @@ C:\Users\devha\Documents\Github\fitnessgenai\backend\src\main\java\com\fitnessco
 C:\Users\devha\Documents\Github\fitnessgenai\backend\src\main\java\com\fitnesscoach\model\MovementPattern.java
 C:\Users\devha\Documents\Github\fitnessgenai\backend\src\main\java\com\fitnesscoach\repository\WorkoutSessionRepository.java
 C:\Users\devha\Documents\Github\fitnessgenai\backend\src\main\java\com\fitnesscoach\model\TempoComponents.java
+C:\Users\devha\Documents\Github\fitnessgenai\backend\src\main\java\com\fitnesscoach\service\AdvancedWorkoutResultService.java
 C:\Users\devha\Documents\Github\fitnessgenai\backend\src\main\java\com\fitnesscoach\repository\ExerciseBlockRepository.java
 C:\Users\devha\Documents\Github\fitnessgenai\backend\src\main\java\com\fitnesscoach\model\AdvancedPrescription.java
 C:\Users\devha\Documents\Github\fitnessgenai\backend\src\main\java\com\fitnesscoach\repository\BlockItemRepository.java
@@ -63,5 +65,6 @@ C:\Users\devha\Documents\Github\fitnessgenai\backend\src\main\java\com\fitnessco
 C:\Users\devha\Documents\Github\fitnessgenai\backend\src\main\java\com\fitnesscoach\model\ExerciseCategory.java
 C:\Users\devha\Documents\Github\fitnessgenai\backend\src\main\java\com\fitnesscoach\model\legacy\Workout.java
 C:\Users\devha\Documents\Github\fitnessgenai\backend\src\main\java\com\fitnesscoach\model\WeightUnit.java
+C:\Users\devha\Documents\Github\fitnessgenai\backend\src\main\java\com\fitnesscoach\dto\WorkoutResultDTO.java
 C:\Users\devha\Documents\Github\fitnessgenai\backend\src\main\java\com\fitnesscoach\repository\legacy\WorkoutResultRepository.java
 C:\Users\devha\Documents\Github\fitnessgenai\backend\src\main\java\com\fitnesscoach\exception\ErrorResponse.java

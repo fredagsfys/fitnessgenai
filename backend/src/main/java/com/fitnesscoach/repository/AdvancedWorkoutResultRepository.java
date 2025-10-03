@@ -13,4 +13,5 @@ public interface AdvancedWorkoutResultRepository extends JpaRepository<AdvancedW
     List<AdvancedWorkoutResult> findByUserIdAndDateBetween(UUID userId, LocalDate startDate, LocalDate endDate);
     List<AdvancedWorkoutResult> findByUserId(UUID userId);
     List<AdvancedWorkoutResult> findByUserIdOrderByDateDesc(UUID userId);
+    List<AdvancedWorkoutResult> findByTemplateId(UUID templateId);
 }
